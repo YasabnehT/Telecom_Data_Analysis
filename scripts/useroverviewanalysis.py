@@ -52,7 +52,7 @@ print(f" There are {db.shape[0]} rows and {db.shape[1]} columns")
 
 db.dtypes
 
-"""##Missing values percentile"""
+"""### Utility Functions"""
 
 # how many missing values exist or better still what is the % of missing values in the dataset?
 def percent_missing(df):
@@ -70,6 +70,131 @@ def percent_missing(df):
     print("The dataset contains", round(((totalMissing/totalCells) * 100), 3), "%", "missing values.")
 
 percent_missing(db)
+
+# Function to calculate missing values by column
+def missing_values_table(df):
+    # Total missing values
+    mis_val = df.isnull().sum()
+
+    # Percentage of missing values
+    mis_val_percent = 100 * df.isnull().sum() / len(df)
+
+    # dtype of missing values
+    mis_val_dtype = df.dtypes
+
+    # Make a table with the results
+    mis_val_table = pd.concat([mis_val, mis_val_percent, mis_val_dtype], axis=1)
+
+    # Rename the columns
+    mis_val_table_ren_columns = mis_val_table.rename(
+    columns = {0 : 'Missing Values', 1 : '% of Total Values', 2: 'Dtype'})
+
+    # Sort the table by percentage of missing descending
+    mis_val_table_ren_columns = mis_val_table_ren_columns[
+        mis_val_table_ren_columns.iloc[:,1] != 0].sort_values(
+    '% of Total Values', ascending=False).round(2)
+
+    # Print some summary information
+    print ("Your selected dataframe has " + str(df.shape[1]) + " columns.\n"      
+        "There are " + str(mis_val_table_ren_columns.shape[0]) +
+          " columns that have missing values.")
+
+    # Return the dataframe with missing information
+    return mis_val_table_ren_columns
+
+def format_float(value):
+    return f'{value:,.2f}'
+
+def find_agg(df:pd.DataFrame, agg_column:str, agg_metric:str, col_name:str, top:int, order=False )->pd.DataFrame:
+    
+    new_df = df.groupby(agg_column)[agg_column].agg(agg_metric).reset_index(name=col_name).\
+                        sort_values(by=col_name, ascending=order)[:top]
+    
+    return new_df
+
+def convert_bytes_to_megabytes(df, bytes_data):
+    """
+        This function takes the dataframe and the column which has the bytes values
+        returns the megabytesof that value
+        
+        Args:
+        -----
+        df: dataframe
+        bytes_data: column with bytes values
+        
+        Returns:
+        --------
+        A series
+    """
+    
+    megabyte = 1*10e+5
+    df[bytes_data] = df[bytes_data] / megabyte
+    return df[bytes_data]
+
+def fix_outlier(df, column):
+    df[column] = np.where(df[column] > df[column].quantile(0.95), df[column].median(),df[column])
+    
+    return df[column]
+
+
+###################################PLOTTING FUNCTIONS###################################
+
+def plot_hist(df:pd.DataFrame, column:str, color:str)->None:
+    # plt.figure(figsize=(15, 10))
+    # fig, ax = plt.subplots(1, figsize=(12, 7))
+    sns.displot(data=df, x=column, color=color, kde=True, height=7, aspect=2)
+    plt.title(f'Distribution of {column}', size=20, fontweight='bold')
+    plt.show()
+
+def plot_count(df:pd.DataFrame, column:str) -> None:
+    plt.figure(figsize=(12, 7))
+    sns.countplot(data=df, x=column)
+    plt.title(f'Distribution of {column}', size=20, fontweight='bold')
+    plt.show()
+    
+def plot_bar(df:pd.DataFrame, x_col:str, y_col:str, title:str, xlabel:str, ylabel:str)->None:
+    plt.figure(figsize=(12, 7))
+    sns.barplot(data = df, x=x_col, y=y_col)
+    plt.title(title, size=20)
+    plt.xticks(rotation=75, fontsize=14)
+    plt.yticks( fontsize=14)
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel(ylabel, fontsize=16)
+    plt.show()
+
+def plot_heatmap(df:pd.DataFrame, title:str, cbar=False)->None:
+    plt.figure(figsize=(12, 7))
+    sns.heatmap(df, annot=True, cmap='viridis', vmin=0, vmax=1, fmt='.2f', linewidths=.7, cbar=cbar )
+    plt.title(title, size=18, fontweight='bold')
+    plt.show()
+
+def plot_box(df:pd.DataFrame, x_col:str, title:str) -> None:
+    plt.figure(figsize=(12, 7))
+    sns.boxplot(data = df, x=x_col)
+    plt.title(title, size=20)
+    plt.xticks(rotation=75, fontsize=14)
+    plt.show()
+
+def plot_box_multi(df:pd.DataFrame, x_col:str, y_col:str, title:str) -> None:
+    plt.figure(figsize=(12, 7))
+    sns.boxplot(data = df, x=x_col, y=y_col)
+    plt.title(title, size=20)
+    plt.xticks(rotation=75, fontsize=14)
+    plt.yticks( fontsize=14)
+    plt.show()
+
+def plot_scatter(df: pd.DataFrame, x_col: str, y_col: str, title: str, hue: str, style: str) -> None:
+    plt.figure(figsize=(12, 7))
+    sns.scatterplot(data = df, x=x_col, y=y_col, hue=hue, style=style)
+    plt.title(title, size=20)
+    plt.xticks(fontsize=14)
+    plt.yticks( fontsize=14)
+    plt.show()
+
+
+pd.options.display.float_format = format_float
+
+missing_values_table(db)
 
 """### Columns with missing values count
 
@@ -186,7 +311,7 @@ db_user_UL_Email
 
 """### Data volume for Gaming DL (Bytes)"""
 
-db_user_DL_Gaming = db.groupby(["IMEI","Gaming DL (Bytes)"]).size()
+db_user_DL_Gaming = db.groupby(["IMEI","Gaming DL (Bytes)"]).agg({'Gaming DL (Bytes)':'sum'})#.size()
 db_user_DL_Gaming
 
 """### Data volume for Gaming UL (Bytes)"""
@@ -339,171 +464,226 @@ db.max()
 
 # db.max() - db.min()
 
-def plotting_count(df):
-  num = df.select_dtypes(include=np.number)  # Get numeric columns
-  n = num.shape[1] # Number of cols
+"""## Utility functions"""
 
-  fig, axes = plt.subplots(5, 1, figsize=(12/2.54, 12/2.54))  # create subplots
+# Function to calculate missing values by column
+def missing_values_table(df):
+    # Total missing values
+    mis_val = df.isnull().sum()
 
-  for ax, col in zip(axes, num):  # For each column...
-      sns.distplot(num[col], ax=ax)   # Plot histogram
-      ax.axvline(num[col].mean(), c='k')  # Plot mean
+    # Percentage of missing values
+    mis_val_percent = 100 * df.isnull().sum() / len(df)
 
-plotting_count(db)
+    # dtype of missing values
+    mis_val_dtype = df.dtypes
 
-db.head().plot(x="Dur. (ms)", y=["Total UL (Bytes)", "Total DL (Bytes)"],
-        kind="line", figsize=(10, 6))
+    # Make a table with the results
+    mis_val_table = pd.concat([mis_val, mis_val_percent, mis_val_dtype], axis=1)
 
-# db.head().plot()
+    # Rename the columns
+    mis_val_table_ren_columns = mis_val_table.rename(
+    columns = {0 : 'Missing Values', 1 : '% of Total Values', 2: 'Dtype'})
 
-def normalizer(df, col):
-    # norm = Normalizer()
-    # # normalize the exponential data with boxcox
-    # normalized_data = norm.fit_transform(df)
-    # # plot both together to compare
-    # fig, ax=plt.subplots(1,2, figsize=(10, 6))
-    # sns.histplot(df, ax=ax[0])
-    # ax[0].set_title("Original Data")
-    # sns.histplot(normalized_data[0], ax=ax[1])
-    # ax[1].set_title("Normalized data")
-    df[col].plot()
+    # Sort the table by percentage of missing descending
+    mis_val_table_ren_columns = mis_val_table_ren_columns[
+        mis_val_table_ren_columns.iloc[:,1] != 0].sort_values(
+    '% of Total Values', ascending=False).round(2)
 
-db_num=db_sklearn.select_dtypes(include=np.number)
-# db_num
-normalizer(db_num, "Dur. (ms)")
+    # Print some summary information
+    print ("Your selected dataframe has " + str(df.shape[1]) + " columns.\n"      
+        "There are " + str(mis_val_table_ren_columns.shape[0]) +
+          " columns that have missing values.")
 
-# check datatypes
-db.info()
+    # Return the dataframe with missing information
+    return mis_val_table_ren_columns
 
-# df_clean.info()
+def format_float(value):
+    return f'{value:,.2f}'
 
-# df_clean['fix_age'].unique()
-
-# df_clean['age'] = [ ((int(i.split('-')[0]) + int(i.split('-')[1])) / 2)  for i in df_clean['fix_age']]
-
-"""## Utility Functions"""
-
-# # Function to calculate missing values by column
-# def missing_values_table(df):
-#     # Total missing values
-#     mis_val = df.isnull().sum()
-
-#     # Percentage of missing values
-#     mis_val_percent = 100 * df.isnull().sum() / len(df)
-
-#     # dtype of missing values
-#     mis_val_dtype = df.dtypes
-
-#     # Make a table with the results
-#     mis_val_table = pd.concat([mis_val, mis_val_percent, mis_val_dtype], axis=1)
-
-#     # Rename the columns
-#     mis_val_table_ren_columns = mis_val_table.rename(
-#     columns = {0 : 'Missing Values', 1 : '% of Total Values', 2: 'Dtype'})
-
-#     # Sort the table by percentage of missing descending
-#     mis_val_table_ren_columns = mis_val_table_ren_columns[
-#         mis_val_table_ren_columns.iloc[:,1] != 0].sort_values(
-#     '% of Total Values', ascending=False).round(1)
-
-#     # Print some summary information
-#     print ("Your selected dataframe has " + str(df.shape[1]) + " columns.\n"      
-#         "There are " + str(mis_val_table_ren_columns.shape[0]) +
-#           " columns that have missing values.")
-
-#     # Return the dataframe with missing information
-#     return mis_val_table_ren_columns
-
-# def format_float(value):
-#     return f'{value:,.2f}'
-
-# def find_agg(df:pd.DataFrame, agg_column:str, agg_metric:str, col_name:str, top:int, order=False )->pd.DataFrame:
+def find_agg(df:pd.DataFrame, agg_column:str, agg_metric:str, col_name:str, top:int, order=False )->pd.DataFrame:
     
-#     new_df = df.groupby(agg_column)[agg_column].agg(agg_metric).reset_index(name=col_name).\
-#                         sort_values(by=col_name, ascending=order)[:top]
+    new_df = df.groupby(agg_column)[agg_column].agg(agg_metric).reset_index(name=col_name).sort_values(by=col_name, ascending=order)[:top]
     
-#     return new_df
+    return new_df
 
-# def convert_bytes_to_megabytes(df, bytes_data):
-#     """
-#         This function takes the dataframe and the column which has the bytes values
-#         returns the megabytesof that value
+def convert_bytes_to_megabytes(df, bytes_data):
+    """
+        This function takes the dataframe and the column which has the bytes values
+        returns the megabytesof that value
         
-#         Args:
-#         -----
-#         df: dataframe
-#         bytes_data: column with bytes values
+        Args:
+        -----
+        df: dataframe
+        bytes_data: column with bytes values
         
-#         Returns:
-#         --------
-#         A series
-#     """
+        Returns:
+        --------
+        A series
+    """
     
-#     megabyte = 1*10e+5
-#     df[bytes_data] = df[bytes_data] / megabyte
+    megabyte = 1*10e+5
+    df[bytes_data] = df[bytes_data] / megabyte
+    return df[bytes_data]
+
+def fix_outlier(df, column):
+    df[column] = np.where(df[column] > df[column].quantile(0.95), df[column].median(),df[column])
     
-#     return df[bytes_data]
+    return df[column]
 
-# pd.options.display.float_format = format_float
 
-"""## Extracting Data"""
+###################################PLOTTING FUNCTIONS###################################
 
-# db['readmitted'].value_counts()
+def plot_hist(df:pd.DataFrame, column:str, color:str)->None:
+    # plt.figure(figsize=(15, 10))
+    # fig, ax = plt.subplots(1, figsize=(12, 7))
+    sns.displot(data=df, x=column, color=color, kde=True, height=7, aspect=2)
+    plt.title(f'Distribution of {column}', size=20, fontweight='bold')
+    plt.show()
 
-# percent_missing(df_clean)
+def plot_count(df:pd.DataFrame, column:str) -> None:
+    plt.figure(figsize=(12, 7))
+    sns.countplot(data=df, x=column)
+    plt.title(f'Distribution of {column}', size=20, fontweight='bold')
+    plt.show()
+    
+def plot_bar(df:pd.DataFrame, x_col:str, y_col:str, title:str, xlabel:str, ylabel:str)->None:
+    plt.figure(figsize=(12, 7))
+    sns.barplot(data = df, x=x_col, y=y_col)
+    plt.title(title, size=20)
+    plt.xticks(rotation=75, fontsize=14)
+    plt.yticks( fontsize=14)
+    plt.xlabel(xlabel, fontsize=16)
+    plt.ylabel(ylabel, fontsize=16)
+    plt.show()
 
-# missing_values_table(df_clean)
+def plot_heatmap(df:pd.DataFrame, title:str, cbar=False)->None:
+    plt.figure(figsize=(12, 7))
+    sns.heatmap(df, annot=True, cmap='viridis', vmin=0, vmax=1, fmt='.2f', linewidths=.7, cbar=cbar )
+    plt.title(title, size=18, fontweight='bold')
+    plt.show()
 
-# def map_readmitted(col):
-#     readmitted_map = {'NO' : 'NO', '>30': 'YES', '<30': 'YES'}
-#     return col.map(readmitted_map)
-# # 
-# db['fix_readmitted'] = map_readmitted(db['readmitted'])
+def plot_box(df:pd.DataFrame, x_col:str, title:str) -> None:
+    plt.figure(figsize=(12, 7))
+    sns.boxplot(data = df, x=x_col)
+    plt.title(title, size=20)
+    plt.xticks(rotation=75, fontsize=14)
+    plt.show()
 
-# unique encounter id
-# db['change'].unique()
+def plot_box_multi(df:pd.DataFrame, x_col:str, y_col:str, title:str) -> None:
+    plt.figure(figsize=(12, 7))
+    sns.boxplot(data = df, x=x_col, y=y_col)
+    plt.title(title, size=20)
+    plt.xticks(rotation=75, fontsize=14)
+    plt.yticks( fontsize=14)
+    plt.show()
 
-# db.shape
+def plot_scatter(df: pd.DataFrame, x_col: str, y_col: str, title: str, hue: str, style: str) -> None:
+    plt.figure(figsize=(12, 7))
+    sns.scatterplot(data = df, x=x_col, y=y_col, hue=hue, style=style)
+    plt.title(title, size=20)
+    plt.xticks(fontsize=14)
+    plt.yticks( fontsize=14)
+    plt.show()
+pd.options.display.float_format = format_float
 
-# pd.set_option('max_column', None)
-# df = pd.read_excel("/content/drive/Shareddrives/10 Academy/Intensive training/Batch 6/Content-B6/Week-1/data/Week1_challenge_data_source.xlsx", engine = 'openpyxl')
-# df.head()
+"""### Data Extraction"""
+
+db['MSISDN/Number'].value_counts()
+
+db['Dur. (ms)'].value_counts()
+
+percent_missing(db)
+
+missing_values_table(db)
 
 """### Mean and Mediam of some vital attributes"""
 
-columns = ['Social Media DL (Bytes)', 'Social Media UL (Bytes)',
-           'Google DL (Bytes)', 'Google UL (Bytes)','Total UL (Bytes)', 'Total DL (Bytes)']
-db[columns].mean()
+important_columns_numeric = ['Bearer Id','Dur. (ms)','MSISDN/Number',
+                      'Avg RTT DL (ms)','Avg RTT UL (ms)',
+                      'TCP DL Retrans. Vol (Bytes)','TCP UL Retrans. Vol (Bytes)',
+                      'Social Media DL (Bytes)', 'Social Media UL (Bytes)',
+                      'Google DL (Bytes)', 'Google UL (Bytes)', 
+                      'Email DL (Bytes)','Email UL (Bytes)',
+                      'Youtube DL (Bytes)', 'Youtube UL (Bytes)',
+                      'Netflix DL (Bytes)', 'Netflix UL (Bytes)', 
+                      'Gaming DL (Bytes)','Gaming UL (Bytes)',
+                      'Other DL (Bytes)', 'Other UL (Bytes)',
+                      'Total UL (Bytes)', 'Total DL (Bytes)' ]
+important_columns_object = ['Handset Manufacturer','Handset Type']
+db[important_columns_numeric].mean()
 
-db[columns].median()
+db[important_columns_numeric].median()
 
-"""### Univariate analysis"""
+db[important_columns_object].mode()
 
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
-sns.set_style('darkgrid')
-sns.set(font_scale=1.3)
+"""### Univariate analysis - Analysis using only one feature/variable"""
+
+db_explore = db.copy()
+
+plot_hist(db_explore.head(10000),"MSISDN/Number" ,'green')
+
+plot_hist(db_explore, "Dur. (ms)", "green")
+
+plot_hist(db_explore, "Bearer Id", "green")
+
+plot_hist(db_explore, "Avg RTT DL (ms)", "green")
+
+plot_hist(db_explore, "Avg RTT UL (ms)", "green")
+
+plot_hist(db_explore.head(50000), "Handset Manufacturer", "blue")
+
+plot_hist(db_explore.head(50000), "Handset Type", "blue")
+
+plot_hist(db_explore, "Social Media DL (Bytes)", "green")
+# sns.histplot(x=columns[0], data =db) # this also works
+
+plot_hist(db_explore, "Social Media UL (Bytes)", "green")
+
+plot_hist(db_explore, "Total DL (Bytes)", "green")
+
+plot_hist(db_explore, "Total UL (Bytes)", "green")
+
+plot_box(db_explore, "Dur. (ms)", "Session Duration Outliers")
+
+plot_box(db_explore, "Avg RTT DL (ms)", "Avg RTT DL (ms) Outliers")
+
+plot_box(db_explore, "Avg RTT UL (ms)", "Avg RTT UL (ms) Outliers")
+
+plot_box(db_explore, "TCP DL Retrans. Vol (Bytes)", "TCP DL Retrans. Vol (Bytes) Outliers")
+
+plot_box(db_explore, "TCP UL Retrans. Vol (Bytes)", "TCP UL Retrans. Vol (Bytes) Outliers")
+
+plot_box(db_explore, "Social Media DL (Bytes)", "Social Media DL (Bytes) Outliers")
+
+plot_box(db_explore, "Social Media UL (Bytes)", "Social Media UL (Bytes) Outliers")
+
+plot_box(db_explore, "Total DL (Bytes)", "Total DL (Bytes) Outliers")
+
+plot_box(db_explore, "Total UL (Bytes)", "Total UL (Bytes) Outliers")
+
+"""### Categorical Data Plot"""
+
+plot_count(db_explore, "Handset Manufacturer")
+
+plot_count(db_explore, "Handset Type")
 
 """### Non-graphical Univariat EDA"""
 
 db.describe()
 
+db["Total DL (Bytes)"].describe()
+
+db["Total UL (Bytes)"].describe()
+
+db["MSISDN/Number"].describe()
+
 db.info()
 
 db.isna().sum()
 
-db.isnull().sum()
+# sns.histplot(x=db[columns]['Total UL (Bytes)'], data =db)
 
-"""### Graphical Univariate EDA"""
-
-sns.histplot(x=columns[0], data =db)
-
-sns.histplot(x=columns[1], data =db)
-
-sns.histplot(x=db[columns]['Total UL (Bytes)'], data =db)
-
-sns.histplot(x=db[columns]['Total DL (Bytes)'], data =db)
+# sns.histplot(x=db[columns]['Total DL (Bytes)'], data =db)
 
 """### Bivariate analysis
 
@@ -517,6 +697,25 @@ sns.histplot(x=db[columns]['Total DL (Bytes)'], data =db)
 sns.regplot(x='Total DL (Bytes)',y='Social Media DL (Bytes)',data=db)
 # sns.countplot(x='Total DL (Bytes)',data=db) 
 #boxplot, violinplot, stripplot, swarmplot, barplot also works
+
+"""### Multivariate Analysis"""
+
+plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Social Media DL (Bytes)", hue="Social Media UL (Bytes)",
+             style="Social Media UL (Bytes)", title="Social media DL consumption per user")
+
+plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Total DL (Bytes)", hue="Total UL (Bytes)",
+             style="Total UL (Bytes)", title="Total DL consumption per user")
+
+plot_box_multi(db_explore.head(100), x_col="MSISDN/Number", y_col="TCP DL Retrans. Vol (Bytes)", 
+               title="TCP DL Retrans. Vol (Bytes) outilers in MSISDN/Number column")
+
+dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
+sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',
+             plot_kws = {'alpha': 0.6, 's': 80, 'edgecolor': 'k'},
+             height=4)
+
+dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
+sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',height=4)
 
 """### Correlation Analysis"""
 
