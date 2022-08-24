@@ -217,6 +217,10 @@ print ("Maximum missing values per column: ", np.max(db.isna().sum())) # print(d
 
 db.max()
 
+"""### Minimum values of each column"""
+
+db.min()
+
 """### Top 10 Handsets used"""
 
 db_hndset_count = db['Handset Type'].value_counts()
@@ -239,7 +243,7 @@ print("Manufacturers-handset pair:\n", top_3_manufact_5_hndset)
 
 """### Data Aggregation with each column"""
 
-db['Bearer Id'].value_counts() # Each BearerID occurances aggregated
+db['Bearer Id'].value_counts() # Each xDR occurances aggregated
 # db.value_counts('Bearer Id') also works
 
 """### User (MSISDN) Grouped and Agregated with Bearer Id(xDR session)
@@ -317,7 +321,9 @@ db_user_UL_Email
 
 """### Data volume for Gaming DL (Bytes)"""
 
-db_user_DL_Gaming = db.groupby(["IMEI","Gaming DL (Bytes)"]).agg({'Gaming DL (Bytes)':'sum'})#.size()
+# db_user_DL_Gaming = db.groupby(["IMEI","Gaming DL (Bytes)"]).agg({'Gaming DL (Bytes)':'sum'})#.size()
+db_user_DL_Gaming = db.groupby(["IMEI"]).agg({'Gaming DL (Bytes)':'sum'})#.size()
+
 db_user_DL_Gaming
 
 """### Data volume for Gaming UL (Bytes)"""
@@ -342,13 +348,15 @@ Use Mode method to fill the missing datapoints of all 'object' type features and
 *   use MEAN/Median for non-skewd/symetrical numeric feature
 
 ### Method selection based on data skewness
+
+#### Skewness of each column
 """
 
 db.skew(axis=0)
 
 """### Skewness visualization with histogram"""
 
-db['Total UL (Bytes)'].hist()
+db['Total UL (Bytes)'].hist() #skewness of Total upload column
 
 db['Total DL (Bytes)'].hist()
 
@@ -364,7 +372,7 @@ db['HTTP DL (Bytes)'].hist()
 
 db['UL TP < 10 Kbps (%)'].hist()
 
-"""### Data with sum of missing values in each column - revisited"""
+"""### Data with total missing values in each column - revisited"""
 
 db.isna().sum()
 
@@ -407,7 +415,7 @@ fill_missing_values(db).isna().sum()
 
 # db.interpolate(inplace=True)
 
-"""## Transforming Data
+"""## Data Transformation
 
 **Scaling and Normalization**
 
@@ -489,8 +497,9 @@ important_columns_numeric = ['Bearer Id','Dur. (ms)','MSISDN/Number',
                       'Gaming DL (Bytes)','Gaming UL (Bytes)',
                       'Other DL (Bytes)', 'Other UL (Bytes)',
                       'Total UL (Bytes)', 'Total DL (Bytes)' ]
+
 important_columns_object = ['Handset Manufacturer','Handset Type']
-db[important_columns_numeric].mean()
+db[important_columns_numeric].mean() #mean of numeric columns
 
 db[important_columns_numeric].median()
 
@@ -576,9 +585,9 @@ sns.barplot(x='Total DL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100
 # sns.countplot(x='Total DL (Bytes)',data=db) 
 #boxplot, violinplot, stripplot, swarmplot, barplot also works
 
-sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore)
+sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore.head(1000))
 
-sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore)
+sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
 
 sns.barplot(x='Total UL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
 
@@ -651,23 +660,62 @@ sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',
 dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
 sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',height=4)
 
-"""### Deciles"""
+"""### Deciles
+
+### Selected columns based on separate PCA
+"""
 
 decile_columns = ['MSISDN/Number','Dur. (ms)','Total UL (Bytes)', 'Total DL (Bytes)' ] # to limit the number of columns to be displayed
 db_decile = db_explore[decile_columns]
-# df:pd.DataFrame, agg_column:str, agg_metric:str, col_name:str, top:int, order=False
-db_decile_group = find_agg(db_decile, "MSISDN/Number", "sum","Dur. (Bytes)", 100, order = True)
-db_decile_group.head(10)
-
-# db_decile_group["Dur. Rank"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
+# db_decile_group["Dur. Decile"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
 # db_decile_group
 
-db_decile_Tot_DL = db_decile.groupby(pd.qcut(db_decile["Total DL (Bytes)"], 5))['Total DL (Bytes)'].sum()
-db_decile_group["Dur. Rank"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
-db_decile_Tot_group
+"""### Five MSISDN deciles based on xDR Duration
+#### contains all selected columns
+"""
 
-"""### Correlation Analysis"""
+db_decile_group_dur = db_decile.groupby(pd.qcut(db_decile["Dur. (ms)"], 5))
+db_decile_group_dur.describe() # includes all selected columns
 
-# db['Total UL (Bytes)'].corr(method='pearson')
+"""### Deciles based on xDR duration
+### Contains only the xDR duration data
+"""
+
+db_decile_group_dur['Dur. (ms)'].describe()
+
+"""### Decile Total DL Bytes sum"""
+
+db_decile_group_dur['Total DL (Bytes)'].sum()
+
+"""### Decile Total UL Bytes sum"""
+
+db_decile_group_dur['Total UL (Bytes)'].sum()
+
+"""### Correlation Analysis
+
+### Correlation Analysis for the whole data
+"""
+
 db.corr(method='pearson')
+
+"""### Correlation Analysis for individual columns
+#### Can be calculated using 'pearson’, ‘kendall’, ‘spearman methods; pearson being the standard correlation coefficient
+"""
+
+cor_columns = ['Social Media DL (Bytes)', 'Social Media UL (Bytes)', 'Google DL (Bytes)', 'Google UL (Bytes)',
+               'Email DL (Bytes)', 'Email UL (Bytes)', 'Youtube DL (Bytes)', 'Youtube UL (Bytes)', 
+               'Netflix DL (Bytes)', 'Netflix UL (Bytes)', 'Gaming DL (Bytes)', 'Gaming UL (Bytes)', 'Other DL (Bytes)', 'Other UL (Bytes)'] 
+
+
+db[cor_columns].corr(method='pearson')
+
+"""### Unapproximated correlation pairwise coefficients"""
+
+db[cor_columns[0]].corr(db[cor_columns[1]], method = 'pearson')
+
+def Iterative_corr():
+  for i in range(0,len(cor_columns)):
+    print(f"Correlation between {cor_columns[i]} and {cor_columns[i+1]} is {db[cor_columns[i]].corr(db[cor_columns[i+1]], method = 'pearson')}")
+
+Iterative_corr()
 
