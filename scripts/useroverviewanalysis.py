@@ -52,7 +52,13 @@ print(f" There are {db.shape[0]} rows and {db.shape[1]} columns")
 
 db.dtypes
 
-"""### Utility Functions"""
+"""
+
+```
+# This is formatted as code
+```
+
+### Utility Functions"""
 
 # how many missing values exist or better still what is the % of missing values in the dataset?
 def percent_missing(df):
@@ -194,6 +200,8 @@ def plot_scatter(df: pd.DataFrame, x_col: str, y_col: str, title: str, hue: str,
 
 pd.options.display.float_format = format_float
 
+"""### Missing Value table"""
+
 missing_values_table(db)
 
 """### Columns with missing values count
@@ -228,40 +236,38 @@ print("\n\nTop 3 manufacturers: \n", top_3_manufact)
 db_hndset_manufac_pair = db.value_counts(["Handset Manufacturer", "Handset Type"])
 top_3_manufact_5_hndset = db_hndset_manufac_pair.head(3)
 print("Manufacturers-handset pair:\n", top_3_manufact_5_hndset)
-# print("\n\nTop 3 manufacturers: \n", top_3_manufact)
-# db_manufac_hndset = db.groupby("Handset Manufacturer", "Handset Type")
 
 """### Data Aggregation with each column"""
 
 db['Bearer Id'].value_counts() # Each BearerID occurances aggregated
 # db.value_counts('Bearer Id') also works
 
-"""### User (IMEI) Grouped and Agregated with Bearer Id(xDR session)"""
+"""### User (MSISDN) Grouped and Agregated with Bearer Id(xDR session)
+Each user has unique xDR session
+"""
 
 # db_user_xDR = db.groupby(["IMEI","Bearer Id"]).agg(session_count = ('Bearer Id', 'value_counts')) # it also works
-db_user_xDR = db.groupby(["IMEI","Bearer Id"]).size()
+db_user_xDR = db.groupby(["MSISDN/Number","Bearer Id"]).size()
 db_user_xDR
 
-"""### User(IMEI) Grouped and Aggregated with session duration"""
+"""### User(MSISDN) Grouped and Aggregated with xDR duration"""
 
-# db_user_Duration = db.groupby(["IMEI","Dur. (ms)"]).size()
-# db_user_Duration = pd.pivot_table(db, values = "Dur. (ms)",index=["IMEI"],aggfunc=np.sum)
-db_user_Duration = db.groupby(["IMEI","Dur. (ms)"]).size() #transform(sum)
+db_user_Duration = db.groupby(["MSISDN/Number","Dur. (ms)"]).size() #transform(sum)
 db_user_Duration
 
-"""### User(IMEI) and Total UL(Upload) Grouped and Aggregated"""
+"""### User(MSISDN) and Total UL(Upload) Grouped and Aggregated"""
 
-db_user_UL_data = db.groupby(["IMEI","Total UL (Bytes)"]).size()
+db_user_UL_data = db.groupby(["MSISDN/Number","Total UL (Bytes)"]).size()
 db_user_UL_data
 
-"""### User(IMEI) and total download(DL) grouped and aggregated"""
+"""### User(MSISDN) and total download(DL) grouped and aggregated"""
 
-db_user_DL_data = db.groupby(["IMEI","Total DL (Bytes)"]).size()
+db_user_DL_data = db.groupby(["MSISDN/Number","Total DL (Bytes)"]).size()
 db_user_DL_data
 
-"""### Data Volume for Social Media DL (Bytes)"""
+"""### User (MSISDN) aggregated with Social Media DL data volume"""
 
-db_user_DL_social_media = db.groupby(["IMEI","Social Media DL (Bytes)"]).size()
+db_user_DL_social_media = db.groupby(["MSISDN/Number","Social Media DL (Bytes)"]).size()
 db_user_DL_social_media
 
 """### Data volume for Social Media UL (Bytes)"""
@@ -460,132 +466,6 @@ db.min()
 
 db.max()
 
-"""### Difference between min and max values in each column"""
-
-# db.max() - db.min()
-
-"""## Utility functions"""
-
-# Function to calculate missing values by column
-def missing_values_table(df):
-    # Total missing values
-    mis_val = df.isnull().sum()
-
-    # Percentage of missing values
-    mis_val_percent = 100 * df.isnull().sum() / len(df)
-
-    # dtype of missing values
-    mis_val_dtype = df.dtypes
-
-    # Make a table with the results
-    mis_val_table = pd.concat([mis_val, mis_val_percent, mis_val_dtype], axis=1)
-
-    # Rename the columns
-    mis_val_table_ren_columns = mis_val_table.rename(
-    columns = {0 : 'Missing Values', 1 : '% of Total Values', 2: 'Dtype'})
-
-    # Sort the table by percentage of missing descending
-    mis_val_table_ren_columns = mis_val_table_ren_columns[
-        mis_val_table_ren_columns.iloc[:,1] != 0].sort_values(
-    '% of Total Values', ascending=False).round(2)
-
-    # Print some summary information
-    print ("Your selected dataframe has " + str(df.shape[1]) + " columns.\n"      
-        "There are " + str(mis_val_table_ren_columns.shape[0]) +
-          " columns that have missing values.")
-
-    # Return the dataframe with missing information
-    return mis_val_table_ren_columns
-
-def format_float(value):
-    return f'{value:,.2f}'
-
-def find_agg(df:pd.DataFrame, agg_column:str, agg_metric:str, col_name:str, top:int, order=False )->pd.DataFrame:
-    
-    new_df = df.groupby(agg_column)[agg_column].agg(agg_metric).reset_index(name=col_name).sort_values(by=col_name, ascending=order)[:top]
-    
-    return new_df
-
-def convert_bytes_to_megabytes(df, bytes_data):
-    """
-        This function takes the dataframe and the column which has the bytes values
-        returns the megabytesof that value
-        
-        Args:
-        -----
-        df: dataframe
-        bytes_data: column with bytes values
-        
-        Returns:
-        --------
-        A series
-    """
-    
-    megabyte = 1*10e+5
-    df[bytes_data] = df[bytes_data] / megabyte
-    return df[bytes_data]
-
-def fix_outlier(df, column):
-    df[column] = np.where(df[column] > df[column].quantile(0.95), df[column].median(),df[column])
-    
-    return df[column]
-
-
-###################################PLOTTING FUNCTIONS###################################
-
-def plot_hist(df:pd.DataFrame, column:str, color:str)->None:
-    # plt.figure(figsize=(15, 10))
-    # fig, ax = plt.subplots(1, figsize=(12, 7))
-    sns.displot(data=df, x=column, color=color, kde=True, height=7, aspect=2)
-    plt.title(f'Distribution of {column}', size=20, fontweight='bold')
-    plt.show()
-
-def plot_count(df:pd.DataFrame, column:str) -> None:
-    plt.figure(figsize=(12, 7))
-    sns.countplot(data=df, x=column)
-    plt.title(f'Distribution of {column}', size=20, fontweight='bold')
-    plt.show()
-    
-def plot_bar(df:pd.DataFrame, x_col:str, y_col:str, title:str, xlabel:str, ylabel:str)->None:
-    plt.figure(figsize=(12, 7))
-    sns.barplot(data = df, x=x_col, y=y_col)
-    plt.title(title, size=20)
-    plt.xticks(rotation=75, fontsize=14)
-    plt.yticks( fontsize=14)
-    plt.xlabel(xlabel, fontsize=16)
-    plt.ylabel(ylabel, fontsize=16)
-    plt.show()
-
-def plot_heatmap(df:pd.DataFrame, title:str, cbar=False)->None:
-    plt.figure(figsize=(12, 7))
-    sns.heatmap(df, annot=True, cmap='viridis', vmin=0, vmax=1, fmt='.2f', linewidths=.7, cbar=cbar )
-    plt.title(title, size=18, fontweight='bold')
-    plt.show()
-
-def plot_box(df:pd.DataFrame, x_col:str, title:str) -> None:
-    plt.figure(figsize=(12, 7))
-    sns.boxplot(data = df, x=x_col)
-    plt.title(title, size=20)
-    plt.xticks(rotation=75, fontsize=14)
-    plt.show()
-
-def plot_box_multi(df:pd.DataFrame, x_col:str, y_col:str, title:str) -> None:
-    plt.figure(figsize=(12, 7))
-    sns.boxplot(data = df, x=x_col, y=y_col)
-    plt.title(title, size=20)
-    plt.xticks(rotation=75, fontsize=14)
-    plt.yticks( fontsize=14)
-    plt.show()
-
-def plot_scatter(df: pd.DataFrame, x_col: str, y_col: str, title: str, hue: str, style: str) -> None:
-    plt.figure(figsize=(12, 7))
-    sns.scatterplot(data = df, x=x_col, y=y_col, hue=hue, style=style)
-    plt.title(title, size=20)
-    plt.xticks(fontsize=14)
-    plt.yticks( fontsize=14)
-    plt.show()
-pd.options.display.float_format = format_float
-
 """### Data Extraction"""
 
 db['MSISDN/Number'].value_counts()
@@ -619,6 +499,8 @@ db[important_columns_object].mode()
 """### Univariate analysis - Analysis using only one feature/variable"""
 
 db_explore = db.copy()
+
+fix_outlier(db_explore, "MSISDN/Number")
 
 plot_hist(db_explore.head(10000),"MSISDN/Number" ,'green')
 
@@ -686,17 +568,69 @@ db.isna().sum()
 # sns.histplot(x=db[columns]['Total DL (Bytes)'], data =db)
 
 """### Bivariate analysis
-
-# NB: The pivot_table() method took me too long to return the plot
-
----
+#### Applications Vs Total DL and Total UL
 """
 
-# pd.pivot_table(db,columns =['Total DL (Bytes)','Social Media DL (Bytes)'])#,aggfunc=[np.sum])
-
-sns.regplot(x='Total DL (Bytes)',y='Social Media DL (Bytes)',data=db)
+db_explore_100 = db_explore.head(100)
+sns.barplot(x='Total DL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
 # sns.countplot(x='Total DL (Bytes)',data=db) 
 #boxplot, violinplot, stripplot, swarmplot, barplot also works
+
+sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore)
+
+sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore)
+
+sns.barplot(x='Total UL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
+
+sns.barplot(x='Total UL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total DL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total DL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total UL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total UL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
+
+sns.stripplot(x='Total DL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
+
+sns.stripplot(x='Total DL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
+
+sns.stripplot(x='Total UL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
+
+sns.stripplot(x='Total UL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total DL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total DL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total UL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total UL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
+
+sns.barplot(x='Total DL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
+
+sns.barplot(x='Total DL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
+
+sns.barplot(x='Total UL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
+
+sns.barplot(x='Total UL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total DL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total DL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total UL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total UL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total DL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total DL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total UL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
+
+sns.regplot(x='Total UL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
 
 """### Multivariate Analysis"""
 
@@ -716,6 +650,21 @@ sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',
 
 dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
 sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',height=4)
+
+"""### Deciles"""
+
+decile_columns = ['MSISDN/Number','Dur. (ms)','Total UL (Bytes)', 'Total DL (Bytes)' ] # to limit the number of columns to be displayed
+db_decile = db_explore[decile_columns]
+# df:pd.DataFrame, agg_column:str, agg_metric:str, col_name:str, top:int, order=False
+db_decile_group = find_agg(db_decile, "MSISDN/Number", "sum","Dur. (Bytes)", 100, order = True)
+db_decile_group.head(10)
+
+# db_decile_group["Dur. Rank"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
+# db_decile_group
+
+db_decile_Tot_DL = db_decile.groupby(pd.qcut(db_decile["Total DL (Bytes)"], 5))['Total DL (Bytes)'].sum()
+db_decile_group["Dur. Rank"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
+db_decile_Tot_group
 
 """### Correlation Analysis"""
 
