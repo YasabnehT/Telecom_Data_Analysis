@@ -16,6 +16,8 @@ from sklearn.preprocessing import Normalizer
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
 import seaborn as sns
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 """### Mount Google Drive to Google Colab"""
 
@@ -715,7 +717,21 @@ db[cor_columns[0]].corr(db[cor_columns[1]], method = 'pearson')
 
 def Iterative_corr():
   for i in range(0,len(cor_columns)):
-    print(f"Correlation between {cor_columns[i]} and {cor_columns[i+1]} is {db[cor_columns[i]].corr(db[cor_columns[i+1]], method = 'pearson')}")
+    print(f"Correlation between {cor_columns[i-1]} and {cor_columns[i]} is {db[cor_columns[i-1]].corr(db[cor_columns[i]], method = 'pearson')}")
 
 Iterative_corr()
+
+"""### Principal Data Analysis"""
+
+db_explore_PCA = PCA(n_components=5)
+
+db_explore_numeric = db_explore[important_columns_numeric]
+db_explore_PC = db_explore_PCA.fit_transform(db_explore_numeric)
+
+principal_db_explore_df = pd.DataFrame(data = db_explore_PC,
+                        columns = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5'])
+
+principal_db_explore_df.head()
+
+print(f'Explained variation per principal component: {db_explore_PCA.explained_variance_ratio_}')
 
