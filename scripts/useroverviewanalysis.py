@@ -18,6 +18,18 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
+
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2, f_regression
+
+from sklearn.model_selection import train_test_split
+from joblib import dump,load
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.cluster import KMeans
+
+import pickle
 
 """### Mount Google Drive to Google Colab"""
 
@@ -33,34 +45,34 @@ import warnings
 warnings.filterwarnings('ignore')
 pd.set_option('max_column', None)
 db = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/data/Week1_challenge_data_source(CSV).csv', na_values=['undefined','?', None])
-db.head() # the fisrt five rows
+# db.head() # the fisrt five rows
 
 """# Size of the dataset
 ### Columns of the dataset
 """
 
 # list of column  names
-db.columns.tolist()
+# db.columns.tolist()
 
 """### Number of columns"""
 
-print(f"Number of columns: ", len(db.columns))
+# print(f"Number of columns: ", len(db.columns))
 
 """### Number of data points and data size"""
 
-print(f" There are {db.shape[0]} rows and {db.shape[1]} columns")
+# print(f" There are {db.shape[0]} rows and {db.shape[1]} columns")
 
 """### Features/columns and their data type"""
 
-db.dtypes
+# db.dtypes
 
-"""
+"""### Min and Max values of each column"""
 
-```
-# This is formatted as code
-```
+# db.max()
 
-### Utility Functions"""
+# db.min()
+
+"""### Utility Functions"""
 
 # how many missing values exist or better still what is the % of missing values in the dataset?
 def percent_missing(df):
@@ -77,7 +89,6 @@ def percent_missing(df):
     # Calculate percentage of missing values
     print("The dataset contains", round(((totalMissing/totalCells) * 100), 3), "%", "missing values.")
 
-percent_missing(db)
 
 # Function to calculate missing values by column
 def missing_values_table(df):
@@ -109,6 +120,16 @@ def missing_values_table(df):
 
     # Return the dataframe with missing information
     return mis_val_table_ren_columns
+
+# fill missing numeric values with mean and object type values with mode
+def fill_missing_values(df):
+  for column in df.columns:
+    if df[column].dtype == 'float64':
+      df[column] = df[column].fillna(df[column].mean())
+    elif df[column].dtypes == 'object':
+      df[column] = df[column].fillna(df[column].mode()[0])
+  return df
+
 
 def format_float(value):
     return f'{value:,.2f}'
@@ -202,148 +223,22 @@ def plot_scatter(df: pd.DataFrame, x_col: str, y_col: str, title: str, hue: str,
 
 pd.options.display.float_format = format_float
 
+percent_missing(db)
+
 """### Missing Value table"""
 
-missing_values_table(db)
+# missing_values_table(db)
 
 """### Columns with missing values count
 
 The Column "Nb of sec with 37500B < Vol UL" has maximum missing values of 130254 occurances
 """
 
-db.isna().sum() # missing values of each column
+# db.isna().sum() # missing values of each column
 
-print ("Maximum missing values per column: ", np.max(db.isna().sum())) # print(db.isna().sum().max())
+# print ("Maximum missing values per column: ", np.max(db.isna().sum())) # print(db.isna().sum().max())
 
-"""### Maximum values of each column"""
-
-db.max()
-
-"""### Minimum values of each column"""
-
-db.min()
-
-"""### Top 10 Handsets used"""
-
-db_hndset_count = db['Handset Type'].value_counts()
-top_10_hndsets = db_hndset_count.head(10)
-print("Most used handset types in Descending order:\n", db_hndset_count)
-print("\n\nTop 10 handsets used: \n", top_10_hndsets)
-
-"""### Top 3 handset manufacturers"""
-
-db_hndset_manufac_count = db['Handset Manufacturer'].value_counts()
-top_3_manufact = db_hndset_manufac_count.head(3)
-print("Dominant manufacturers in descending order:\n", db_hndset_manufac_count)
-print("\n\nTop 3 manufacturers: \n", top_3_manufact)
-
-"""### Manufacturer-Handset pairs"""
-
-db_hndset_manufac_pair = db.value_counts(["Handset Manufacturer", "Handset Type"])
-top_3_manufact_5_hndset = db_hndset_manufac_pair.head(3)
-print("Manufacturers-handset pair:\n", top_3_manufact_5_hndset)
-
-"""### Data Aggregation with each column"""
-
-db['Bearer Id'].value_counts() # Each xDR occurances aggregated
-# db.value_counts('Bearer Id') also works
-
-"""### User (MSISDN) Grouped and Agregated with Bearer Id(xDR session)
-Each user has unique xDR session
-"""
-
-# db_user_xDR = db.groupby(["IMEI","Bearer Id"]).agg(session_count = ('Bearer Id', 'value_counts')) # it also works
-db_user_xDR = db.groupby(["MSISDN/Number","Bearer Id"]).size()
-db_user_xDR
-
-"""### User(MSISDN) Grouped and Aggregated with xDR duration"""
-
-db_user_Duration = db.groupby(["MSISDN/Number","Dur. (ms)"]).size() #transform(sum)
-db_user_Duration
-
-"""### User(MSISDN) and Total UL(Upload) Grouped and Aggregated"""
-
-db_user_UL_data = db.groupby(["MSISDN/Number","Total UL (Bytes)"]).size()
-db_user_UL_data
-
-"""### User(MSISDN) and total download(DL) grouped and aggregated"""
-
-db_user_DL_data = db.groupby(["MSISDN/Number","Total DL (Bytes)"]).size()
-db_user_DL_data
-
-"""### User (MSISDN) aggregated with Social Media DL data volume"""
-
-db_user_DL_social_media = db.groupby(["MSISDN/Number","Social Media DL (Bytes)"]).size()
-db_user_DL_social_media
-
-"""### Data volume for Social Media UL (Bytes)"""
-
-db_user_UL_social_media = db.groupby(["IMEI","Social Media UL (Bytes)"]).size()
-db_user_UL_social_media
-
-"""### Data volume for YouTube DL (Bytes)"""
-
-db_user_DL_Youtube = db.groupby(["IMEI","Youtube DL (Bytes)"]).size()
-db_user_DL_Youtube
-
-"""### Data volume for YouTube UL (Bytes)"""
-
-db_user_UL_Youtube = db.groupby(["IMEI","Youtube UL (Bytes)"]).size()
-db_user_UL_Youtube
-
-"""### Data volume for Netflix DL (Bytes)"""
-
-db_user_DL_Netflix = db.groupby(["IMEI","Netflix DL (Bytes)"]).size()
-db_user_DL_Netflix
-
-"""### Data volume for Netflix UL (Bytes)"""
-
-db_user_UL_Netflix = db.groupby(["IMEI","Netflix UL (Bytes)"]).size()
-db_user_UL_Netflix
-
-"""### Data volume for Google DL (Bytes)"""
-
-db_user_DL_Google = db.groupby(["IMEI","Google DL (Bytes)"]).size()
-db_user_DL_Google
-
-"""### Data volume for Google UL (Bytes)"""
-
-db_user_UL_Google = db.groupby(["IMEI","Google UL (Bytes)"]).size()
-db_user_UL_Google
-
-"""### Data volume for Email DL (Bytes)"""
-
-db_user_DL_Email = db.groupby(["IMEI","Email DL (Bytes)"]).size()
-db_user_DL_Email
-
-"""### Data volume for Email UL (Bytes)"""
-
-db_user_UL_Email = db.groupby(["IMEI","Email UL (Bytes)"]).size()
-db_user_UL_Email
-
-"""### Data volume for Gaming DL (Bytes)"""
-
-# db_user_DL_Gaming = db.groupby(["IMEI","Gaming DL (Bytes)"]).agg({'Gaming DL (Bytes)':'sum'})#.size()
-db_user_DL_Gaming = db.groupby(["IMEI"]).agg({'Gaming DL (Bytes)':'sum'})#.size()
-
-db_user_DL_Gaming
-
-"""### Data volume for Gaming UL (Bytes)"""
-
-db_user_UL_Gaming = db.groupby(["IMEI","Gaming UL (Bytes)"]).size()
-db_user_UL_Gaming
-
-"""### Data volume for Other DL"""
-
-db_user_DL_Other = db.groupby(["IMEI","Other DL (Bytes)"]).size()
-db_user_DL_Other
-
-"""### Data Volume for Other UL"""
-
-db_user_UL_Other = db.groupby(["IMEI","Other UL (Bytes)"]).size()
-db_user_UL_Other
-
-"""# Data Exploration
+"""# Exploratory Data Analysis
 
 Use Mode method to fill the missing datapoints of all 'object' type features and Mean/Median methods for all numuric type features.
 *   use Median method for skewed(negative/positive) numeric feature and 
@@ -354,56 +249,27 @@ Use Mode method to fill the missing datapoints of all 'object' type features and
 #### Skewness of each column
 """
 
-db.skew(axis=0)
+# db.skew(axis=0)
 
 """### Skewness visualization with histogram"""
 
-db['Total UL (Bytes)'].hist() #skewness of Total upload column
-
-db['Total DL (Bytes)'].hist()
-
-db['Total UL (Bytes)'].hist()
+# db['Total UL (Bytes)'].hist()
 
 """### Positively skewed parameter"""
 
-db['HTTP DL (Bytes)'].hist()
+# db['UL TP < 10 Kbps (%)'].hist()
 
-"""### Negatively skewwed parameter
+"""### Negatively skewwed parameter"""
 
-"""
-
-db['UL TP < 10 Kbps (%)'].hist()
+# db['UL TP < 10 Kbps (%)'].hist()
 
 """### Data with total missing values in each column - revisited"""
 
-db.isna().sum()
+# db.isna().sum()
 
-"""### Column data types - revisited"""
-
-db.dtypes
-
-"""### Utility function to fill missing values
+"""### Fill missing values
 * numeric missing values with mean method
 * object type missing values with mode method
-"""
-
-# fill numeric columns with ffill and bfill
-"""
-df[col].fillna(method='ffill') and df[col].fillna(method='bfill') or 
-df[col].ffill(axis = 0) and df[col].bfill(axis = 0) fills the missing values with the value before/after it
-"""
-# fill missing numeric values with mean and object type values with mode
-def fill_missing_values(df):
-  for column in df.columns:
-    if df[column].dtype == 'float64':
-      df[column] = df[column].fillna(df[column].mean())
-    elif df[column].dtypes == 'object':
-      df[column] = df[column].fillna(df[column].mode()[0])
-  return df
-
-"""### Data with all missing values filled - zero null count
-
-
 """
 
 fill_missing_values(db).isna().sum()
@@ -417,8 +283,9 @@ fill_missing_values(db).isna().sum()
 
 # db.interpolate(inplace=True)
 
-"""## Data Transformation
+# db.isna().sum()
 
+"""# Data Transformation
 **Scaling and Normalization**
 
 ##### Scaling - changing the range of your data 
@@ -441,50 +308,35 @@ Scaling just changes the range of your data. Normalization is a more radical tra
 
 * We usee the Normalizer method from sklearn
 
-### Numeric value scalling
+### Numeric Value Scaling
 """
 
 minmax_scaler = preprocessing.MinMaxScaler()
 def scalling_numeric_values(df):
   col_values = []
+  col_exclude = ['Bearer Id', 'IMSI','MSISDN/Number','IMEI']
   for column in df.columns:
-    if df[column].dtype == 'float64':
+    if df[column].dtype == 'float64' and (column not in col_exclude):
       col_values.append(list(df[column].values))
-  col_values_skaled = minmax_scaler.fit_transform(col_values)
-  db_scaled = pd.DataFrame(col_values_skaled)
+  col_values_scaled = minmax_scaler.fit_transform(col_values)
+  db_scaled = pd.DataFrame(col_values_scaled)
   return df
 
 db_sklearn = fill_missing_values(db.copy())
 scalling_numeric_values(db_sklearn)
+db_sklearn
 
 """### Scaling between [0,1]"""
 
 def scalling_numeric_values_0_1(df):
   for column in df.columns:
-    if df[column].dtype == 'float64':
+    col_exclude = ['Bearer Id', 'IMSI','MSISDN/Number','IMEI']
+    if df[column].dtype == 'float64' and (column not in col_exclude):
       df[column] = MinMaxScaler().fit_transform(np.array(df[column]).reshape(150001,1))
   return df
 
 db_sklearn = fill_missing_values(db.copy())
 scalling_numeric_values_0_1(db_sklearn)
-
-"""### Min values in each column"""
-
-db.min()
-
-"""### Max values in each column"""
-
-db.max()
-
-"""### Data Extraction"""
-
-db['MSISDN/Number'].value_counts()
-
-db['Dur. (ms)'].value_counts()
-
-percent_missing(db)
-
-missing_values_table(db)
 
 """### Mean and Mediam of some vital attributes"""
 
@@ -501,237 +353,796 @@ important_columns_numeric = ['Bearer Id','Dur. (ms)','MSISDN/Number',
                       'Total UL (Bytes)', 'Total DL (Bytes)' ]
 
 important_columns_object = ['Handset Manufacturer','Handset Type']
-db[important_columns_numeric].mean() #mean of numeric columns
 
-db[important_columns_numeric].median()
+# db[important_columns_numeric].mean() #mean of numeric columns
 
-db[important_columns_object].mode()
+# db[important_columns_numeric].median()
 
-"""### Univariate analysis - Analysis using only one feature/variable"""
+# db[important_columns_object].mode()
 
-db_explore = db.copy()
+"""# User Overview Analysis
 
-fix_outlier(db_explore, "MSISDN/Number")
+## Univariate Analysis
+* Numric Univaraite Analysis
+* Categorical Univariate Analysis
 
-plot_hist(db_explore.head(10000),"MSISDN/Number" ,'green')
+### Numeric Univariate EDA
+"""
 
-plot_hist(db_explore, "Dur. (ms)", "green")
+# db_explore = db.copy()
+# fix_outlier(db_explore, "MSISDN/Number")
 
-plot_hist(db_explore, "Bearer Id", "green")
+# plot_hist(db_explore.head(10000),"MSISDN/Number" ,'green')
 
-plot_hist(db_explore, "Avg RTT DL (ms)", "green")
+# plot_hist(db_explore, "Dur. (ms)", "green")
 
-plot_hist(db_explore, "Avg RTT UL (ms)", "green")
+# plot_hist(db_explore, "Bearer Id", "green")
 
-plot_hist(db_explore.head(50000), "Handset Manufacturer", "blue")
+# plot_hist(db_explore, "Avg RTT DL (ms)", "green")
 
-plot_hist(db_explore.head(50000), "Handset Type", "blue")
+# plot_hist(db_explore, "Avg RTT UL (ms)", "green")
 
-plot_hist(db_explore, "Social Media DL (Bytes)", "green")
+# plot_hist(db_explore.head(50000), "Handset Manufacturer", "blue")
+
+# plot_hist(db_explore.head(50000), "Handset Type", "blue")
+
+# plot_hist(db_explore, "Social Media DL (Bytes)", "green")
+
 # sns.histplot(x=columns[0], data =db) # this also works
+# plot_hist(db_explore, "Social Media UL (Bytes)", "green")
 
-plot_hist(db_explore, "Social Media UL (Bytes)", "green")
+# plot_hist(db_explore, "Total DL (Bytes)", "green")
 
-plot_hist(db_explore, "Total DL (Bytes)", "green")
+# plot_hist(db_explore, "Total UL (Bytes)", "green")
 
-plot_hist(db_explore, "Total UL (Bytes)", "green")
+# plot_box(db_explore, "Dur. (ms)", "Session Duration Outliers")
 
-plot_box(db_explore, "Dur. (ms)", "Session Duration Outliers")
+# plot_box(db_explore, "Avg RTT DL (ms)", "Avg RTT DL (ms) Outliers")
 
-plot_box(db_explore, "Avg RTT DL (ms)", "Avg RTT DL (ms) Outliers")
+# plot_box(db_explore, "Avg RTT UL (ms)", "Avg RTT UL (ms) Outliers")
 
-plot_box(db_explore, "Avg RTT UL (ms)", "Avg RTT UL (ms) Outliers")
+# plot_box(db_explore, "TCP DL Retrans. Vol (Bytes)", "TCP DL Retrans. Vol (Bytes) Outliers")
 
-plot_box(db_explore, "TCP DL Retrans. Vol (Bytes)", "TCP DL Retrans. Vol (Bytes) Outliers")
+# plot_box(db_explore, "TCP UL Retrans. Vol (Bytes)", "TCP UL Retrans. Vol (Bytes) Outliers")
 
-plot_box(db_explore, "TCP UL Retrans. Vol (Bytes)", "TCP UL Retrans. Vol (Bytes) Outliers")
+# plot_box(db_explore, "Social Media DL (Bytes)", "Social Media DL (Bytes) Outliers")
 
-plot_box(db_explore, "Social Media DL (Bytes)", "Social Media DL (Bytes) Outliers")
+# plot_box(db_explore, "Social Media UL (Bytes)", "Social Media UL (Bytes) Outliers")
 
-plot_box(db_explore, "Social Media UL (Bytes)", "Social Media UL (Bytes) Outliers")
+# plot_box(db_explore, "Total DL (Bytes)", "Total DL (Bytes) Outliers")
 
-plot_box(db_explore, "Total DL (Bytes)", "Total DL (Bytes) Outliers")
+# plot_box(db_explore, "Total UL (Bytes)", "Total UL (Bytes) Outliers")
 
-plot_box(db_explore, "Total UL (Bytes)", "Total UL (Bytes) Outliers")
+"""### Categorical Univariate EDA"""
 
-"""### Categorical Data Plot"""
+# plot_count(db_explore, "Handset Manufacturer")
 
-plot_count(db_explore, "Handset Manufacturer")
+# plot_count(db_explore, "Handset Type")
 
-plot_count(db_explore, "Handset Type")
+"""### Non-Graphical Univariate EDA"""
 
-"""### Non-graphical Univariat EDA"""
+# db.describe()
 
-db.describe()
+# db["Total DL (Bytes)"].describe()
 
-db["Total DL (Bytes)"].describe()
+# db["Total UL (Bytes)"].describe()
 
-db["Total UL (Bytes)"].describe()
+# db["MSISDN/Number"].describe()
 
-db["MSISDN/Number"].describe()
+# db.info()
 
-db.info()
+# db.isna().sum()
 
-db.isna().sum()
+# db_explore_100 = db_explore.head(100)
 
-# sns.histplot(x=db[columns]['Total UL (Bytes)'], data =db)
-
-# sns.histplot(x=db[columns]['Total DL (Bytes)'], data =db)
-
-"""### Bivariate analysis
+"""## Bivariate Analysis
 #### Applications Vs Total DL and Total UL
 """
 
-db_explore_100 = db_explore.head(100)
-sns.barplot(x='Total DL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
-# sns.countplot(x='Total DL (Bytes)',data=db) 
-#boxplot, violinplot, stripplot, swarmplot, barplot also works
+# sns.barplot(x='Total DL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
 
-sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore.head(1000))
+# sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore.head(1000))
 
-sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
+# sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
 
-sns.barplot(x='Total UL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
+# sns.barplot(x='Total UL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
 
-sns.barplot(x='Total UL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
+# sns.barplot(x='Total UL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total DL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total DL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total DL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total DL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total UL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total UL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total UL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total UL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
 
-sns.stripplot(x='Total DL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
+# sns.stripplot(x='Total DL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
 
-sns.stripplot(x='Total DL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
+# sns.stripplot(x='Total DL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
+# sns.stripplot(x='Total UL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
 
-sns.stripplot(x='Total UL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
+# sns.stripplot(x='Total UL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
 
-sns.stripplot(x='Total UL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total DL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total DL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total DL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total DL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total UL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total UL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total UL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total UL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
+# sns.barplot(x='Total DL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
 
-sns.barplot(x='Total DL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
+# sns.barplot(x='Total DL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
 
-sns.barplot(x='Total DL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
+# sns.barplot(x='Total UL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
 
-sns.barplot(x='Total UL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
+# sns.barplot(x='Total UL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
 
-sns.barplot(x='Total UL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total DL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total DL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total DL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total DL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total UL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total UL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total UL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total UL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total DL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total DL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total DL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total DL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total UL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total UL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
+# sns.regplot(x='Total UL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
 
-sns.regplot(x='Total UL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
+"""##Multivariate Analysis"""
 
-"""### Multivariate Analysis"""
+# plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Social Media DL (Bytes)", hue="Social Media UL (Bytes)",
+#              style="Social Media UL (Bytes)", title="Social media DL consumption per user")
 
-plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Social Media DL (Bytes)", hue="Social Media UL (Bytes)",
-             style="Social Media UL (Bytes)", title="Social media DL consumption per user")
+# plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Total DL (Bytes)", hue="Total UL (Bytes)",
+#              style="Total UL (Bytes)", title="Total DL consumption per user")
 
-plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Total DL (Bytes)", hue="Total UL (Bytes)",
-             style="Total UL (Bytes)", title="Total DL consumption per user")
+# plot_box_multi(db_explore.head(100), x_col="MSISDN/Number", y_col="TCP DL Retrans. Vol (Bytes)", 
+#                title="TCP DL Retrans. Vol (Bytes) outilers in MSISDN/Number column")
 
-plot_box_multi(db_explore.head(100), x_col="MSISDN/Number", y_col="TCP DL Retrans. Vol (Bytes)", 
-               title="TCP DL Retrans. Vol (Bytes) outilers in MSISDN/Number column")
+# dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
 
-dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
-sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',
-             plot_kws = {'alpha': 0.6, 's': 80, 'edgecolor': 'k'},
-             height=4)
+# sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',
+#              plot_kws = {'alpha': 0.6, 's': 80, 'edgecolor': 'k'},
+#              height=4)
 
-dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
-sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',height=4)
+# dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
+# sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',height=4)
 
-"""### Deciles
+"""# Deciles
 
-### Selected columns based on separate PCA
+### Decile Columns
 """
 
-decile_columns = ['MSISDN/Number','Dur. (ms)','Total UL (Bytes)', 'Total DL (Bytes)' ] # to limit the number of columns to be displayed
-db_decile = db_explore[decile_columns]
-# db_decile_group["Dur. Decile"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
-# db_decile_group
+# decile_columns = ['MSISDN/Number','Dur. (ms)','Total UL (Bytes)', 'Total DL (Bytes)' ] # to limit the number of columns to be displayed
+# db_decile = db_explore[decile_columns]
+# # db_decile_group["Dur. Decile"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
+# # db_decile_group
 
 """### Five MSISDN deciles based on xDR Duration
 #### contains all selected columns
 """
 
-db_decile_group_dur = db_decile.groupby(pd.qcut(db_decile["Dur. (ms)"], 5))
-db_decile_group_dur.describe() # includes all selected columns
+# db_decile_group_dur = db_decile.groupby(pd.qcut(db_decile["Dur. (ms)"], 5))
+# db_decile_group_dur.describe() # includes all selected columns
 
 """### Deciles based on xDR duration
 ### Contains only the xDR duration data
 """
 
-db_decile_group_dur['Dur. (ms)'].describe()
+# db_decile_group_dur['Dur. (ms)'].describe()
 
-"""### Decile Total DL Bytes sum"""
+"""### Decile Total DL Bytes sum
 
-db_decile_group_dur['Total DL (Bytes)'].sum()
 
-"""### Decile Total UL Bytes sum"""
 
-db_decile_group_dur['Total UL (Bytes)'].sum()
+"""
 
-"""### Correlation Analysis
+# db_decile_group_dur['Total DL (Bytes)'].sum()
+
+"""### Decile Total UL Bytes sum
+
+"""
+
+# db_decile_group_dur['Total UL (Bytes)'].sum()
+
+"""## Correlation Analysis
 
 ### Correlation Analysis for the whole data
+
 """
 
-db.corr(method='pearson')
+# db.corr(method='pearson')
 
 """### Correlation Analysis for individual columns
-#### Can be calculated using 'pearson’, ‘kendall’, ‘spearman methods; pearson being the standard correlation coefficient
+* Can be calculated using 'pearson’, ‘kendall’, ‘spearman methods; pearson being the standard correlation coefficient
+
+
 """
 
-cor_columns = ['Social Media DL (Bytes)', 'Social Media UL (Bytes)', 'Google DL (Bytes)', 'Google UL (Bytes)',
-               'Email DL (Bytes)', 'Email UL (Bytes)', 'Youtube DL (Bytes)', 'Youtube UL (Bytes)', 
-               'Netflix DL (Bytes)', 'Netflix UL (Bytes)', 'Gaming DL (Bytes)', 'Gaming UL (Bytes)', 'Other DL (Bytes)', 'Other UL (Bytes)'] 
+# cor_columns = ['Social Media DL (Bytes)', 'Social Media UL (Bytes)', 'Google DL (Bytes)', 'Google UL (Bytes)',
+#                'Email DL (Bytes)', 'Email UL (Bytes)', 'Youtube DL (Bytes)', 'Youtube UL (Bytes)', 
+#                'Netflix DL (Bytes)', 'Netflix UL (Bytes)', 'Gaming DL (Bytes)', 'Gaming UL (Bytes)', 'Other DL (Bytes)', 'Other UL (Bytes)'] 
+# db[cor_columns].corr(method='pearson')
 
+"""### Unapproximated pairwise Correlation coefficients"""
 
-db[cor_columns].corr(method='pearson')
-
-"""### Unapproximated correlation pairwise coefficients"""
-
-db[cor_columns[0]].corr(db[cor_columns[1]], method = 'pearson')
+# db[cor_columns[0]].corr(db[cor_columns[1]], method = 'pearson')
 
 def Iterative_corr():
   for i in range(0,len(cor_columns)):
     print(f"Correlation between {cor_columns[i-1]} and {cor_columns[i]} is {db[cor_columns[i-1]].corr(db[cor_columns[i]], method = 'pearson')}")
 
-Iterative_corr()
+# Iterative_corr()
 
-"""### Principal Data Analysis"""
+"""## Principal Component Analysis"""
 
-db_explore_PCA = PCA(n_components=5)
+# db_explore_PCA = PCA(n_components=5)
 
-db_explore_numeric = db_explore[important_columns_numeric]
-db_explore_PC = db_explore_PCA.fit_transform(db_explore_numeric)
+# db_explore_numeric = db_explore[important_columns_numeric]
+# db_explore_PC = db_explore_PCA.fit_transform(db_explore_numeric)
 
-principal_db_explore_df = pd.DataFrame(data = db_explore_PC,
-                        columns = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5'])
+# principal_db_explore_df = pd.DataFrame(data = db_explore_PC,
+#                         columns = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5'])
+# principal_db_explore_df.head()
 
-principal_db_explore_df.head()
+# print(f'Explained variation per principal component: {db_explore_PCA.explained_variance_ratio_}')
 
-print(f'Explained variation per principal component: {db_explore_PCA.explained_variance_ratio_}')
+"""# User Engagement Analysis
+
+### Top 10 Handsets used
+"""
+
+# db_hndset_count = db['Handset Type'].value_counts()
+# top_10_hndsets = db_hndset_count.head(10)
+# print("Most used handset types in Descending order:\n", db_hndset_count)
+# print("\n\nTop 10 handsets used: \n", top_10_hndsets)
+
+"""### Top 3 handset manufacturers"""
+
+db_hndset_manufac_count = db['Handset Manufacturer'].value_counts()
+top_3_manufact = db_hndset_manufac_count.head(3)
+print("Dominant manufacturers in descending order:\n", db_hndset_manufac_count)
+print("\n\nTop 3 manufacturers: \n", top_3_manufact)
+
+"""### Manufacturer-Handset pairs"""
+
+db_hndset_manufac_pair = db.value_counts(["Handset Manufacturer", "Handset Type"])
+top_3_manufact_5_hndset = db_hndset_manufac_pair.head(3)
+print("Manufacturers-handset pair:\n", top_3_manufact_5_hndset)
+
+"""## Data Aggregation with each column
+
+### Frequency of each session (Bearer Id)
+"""
+
+db['Bearer Id'].value_counts() # Each xDR occurances aggregated
+# db.value_counts('Bearer Id') also works
+
+"""### 10 most frequent sessions"""
+
+db['Bearer Id'].value_counts()#.head(10)
+
+"""### Frequency of each User(MSISDN/Number)"""
+
+db["MSISDN/Number"].value_counts()
+
+"""### Top 10 frequent users"""
+
+db["MSISDN/Number"].value_counts().head(10)
+
+"""### User (MSISDN) Grouped and Agregated with Bearer Id(xDR session)
+Each user has unique xDR session
+
+### User-Session pair frequencies
+"""
+
+db_user_xDR = db.groupby(["MSISDN/Number"]).agg(session_count = ('Bearer Id', 'value_counts')).sort_values(by='session_count', ascending = False)#.value_counts(ascending = False) # it also works
+# db_user_xDR = db[['MSISDN/Number', 'Bearer Id']].value_counts() # this also works
+db_user_xDR
+
+"""### Top 10 frequent users-session pairs"""
+
+db_user_xDR = db.groupby(["MSISDN/Number"]).agg(session_count = ('Bearer Id', 'value_counts')).sort_values(by='session_count', ascending = False)#.value_counts(ascending = False) # it also works
+# db_user_xDR = db[['MSISDN/Number', 'Bearer Id']].value_counts() # this also works
+db_user_xDR.head(10)
+
+"""### User(MSISDN) Grouped and Aggregated with xDR duration"""
+
+# db_user_Duration = db.groupby(["MSISDN/Number","Dur. (ms)"]).size()
+db_user_Duration = db.groupby(["MSISDN/Number"]).agg(Duration = ('Dur. (ms)', 'value_counts')).sort_values(by='Duration', ascending = False)#.value_counts(ascending = False) # it also works
+
+db_user_Duration
+
+"""### Top 10 frequent durations users have engaged
+#### These are frequent durations when users stay connected
+"""
+
+db_user_Duration = db.groupby(["MSISDN/Number"]).agg(Duration = ('Dur. (ms)', 'value_counts')).sort_values(by='Duration', ascending = False)#.value_counts(ascending = False) # it also works
+
+db_user_Duration.head(10)
+
+"""### User Engagement per duration measure"""
+
+db_user_Duration = db.groupby(["MSISDN/Number"]).agg(Duration_ms = ('Dur. (ms)', 'sum')).sort_values(by='Duration_ms', ascending = False)#.value_counts(ascending = False) # it also works
+
+db_user_Duration
+
+"""### Top 10 user with longer engagement durations (ms)
+#### These are users who engaged more by staying connected longer
+"""
+
+db_user_Duration = db.groupby(["MSISDN/Number"]).agg(Duration_ms = ('Dur. (ms)', 'sum')).sort_values(by='Duration_ms', ascending = False)#.value_counts(ascending = False) # it also works
+
+db_user_Duration.head(10)
+
+"""### User(MSISDN) and Total UL(Upload) Grouped and Aggregated"""
+
+db_user_UL_data = db.groupby(["MSISDN/Number"]).agg(Total_UL_Bytes = ("Total UL (Bytes)", 'sum')).sort_values(by='Total_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_UL_data
+
+"""### Top 10 Users with highest Total Upload Bytes"""
+
+db_user_UL_data = db.groupby(["MSISDN/Number"]).agg(Total_UL_Bytes = ("Total UL (Bytes)", 'sum')).sort_values(by='Total_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+# db_user_UL_data = db[['MSISDN/Number', 'Total UL (Bytes)']].sum()#value_counts() # this also works
+db_user_UL_data.head(10)
+
+"""### User(MSISDN) and total download(DL) grouped and aggregated"""
+
+db_user_DL_data = db.groupby(["MSISDN/Number"]).agg(Total_DL_Bytes = ("Total DL (Bytes)", 'sum')).sort_values(by='Total_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_DL_data
+
+"""### Top 10 Users with highest Download Bytes"""
+
+db_user_DL_data = db.groupby(["MSISDN/Number"]).agg(Total_DL_Bytes = ("Total DL (Bytes)", 'sum')).sort_values(by='Total_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_DL_data.head(10)
+
+"""### User (MSISDN) aggregated with Social Media DL data volume"""
+
+db_user_social_DL = db.groupby(["MSISDN/Number"]).agg(Social_Media_DL_Bytes = ("Social Media UL (Bytes)", 'sum')).sort_values(by='Social_Media_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_social_DL
+
+"""### Top 10 users with largest Social Media Download"""
+
+db_user_social_DL.head(10)
+
+"""### Data volume for Social Media UL (Bytes)"""
+
+db_user_social_UL = db.groupby(["MSISDN/Number"]).agg(Social_Media_UL_Bytes = ("Social Media UL (Bytes)", 'sum')).sort_values(by='Social_Media_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_social_UL
+
+"""### Top 10 users with lasrgest Social Media Upload"""
+
+db_user_social_UL.head(10)
+
+"""### Data volume for YouTube DL (Bytes)"""
+
+db_user_youtube_DL = db.groupby(["MSISDN/Number"]).agg(Youtube_DL_Bytes = ("Youtube DL (Bytes)", 'sum')).sort_values(by='Youtube_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_youtube_DL
+
+"""### Top 10 users with largest Youtube Download"""
+
+db_user_youtube_DL.head(10)
+
+"""### Data volume for YouTube UL (Bytes)"""
+
+db_user_youtube_UL = db.groupby(["MSISDN/Number"]).agg(Youtube_UL_Bytes = ("Youtube UL (Bytes)", 'sum')).sort_values(by='Youtube_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_youtube_UL
+
+"""### Top 10 users with largest Youtube Upload"""
+
+db_user_youtube_UL.head(10)
+
+"""### Data volume for Netflix DL (Bytes)"""
+
+db_user_Netflix_DL = db.groupby(["MSISDN/Number"]).agg(Netflix_DL_Bytes = ("Netflix DL (Bytes)", 'sum')).sort_values(by='Netflix_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Netflix_DL
+
+"""### Top 10 users with largest Netflix Download"""
+
+db_user_Netflix_DL.head(10)
+
+"""### Data volume for Netflix UL (Bytes)"""
+
+db_user_Netflix_UL = db.groupby(["MSISDN/Number"]).agg(Netflix_UL_Bytes = ("Netflix UL (Bytes)", 'sum')).sort_values(by='Netflix_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Netflix_UL
+
+"""### Top 10 users with Netflix Upload"""
+
+db_user_Netflix_UL.head(10)
+
+"""### Data volume for Google DL (Bytes)"""
+
+db_user_Google_DL = db.groupby(["MSISDN/Number"]).agg(Google_DL_Bytes = ("Google DL (Bytes)", 'sum')).sort_values(by='Google_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Google_DL
+
+"""### Top 10 users with largest Google Download"""
+
+db_user_Google_DL.head(10)
+
+"""### Data volume for Google UL (Bytes)"""
+
+db_user_Google_UL = db.groupby(["MSISDN/Number"]).agg(Google_UL_Bytes = ("Google UL (Bytes)", 'sum')).sort_values(by='Google_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Google_UL
+
+"""### Top 10 users with largest Google Upload"""
+
+db_user_Google_UL.head(10)
+
+"""### Data volume for Email DL (Bytes)"""
+
+db_user_Email_DL = db.groupby(["MSISDN/Number"]).agg(Email_DL_Bytes = ("Email DL (Bytes)", 'sum')).sort_values(by='Email_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Email_DL
+
+"""### Top 10 users with largest Email Download"""
+
+db_user_Email_DL.head(10)
+
+"""### Data volume for Email UL (Bytes)"""
+
+db_user_Email_UL = db.groupby(["MSISDN/Number"]).agg(Email_UL_Bytes = ("Email UL (Bytes)", 'sum')).sort_values(by='Email_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Email_UL
+
+"""### Top 10 users with largest Email Upload"""
+
+db_user_Email_UL.head(10)
+
+"""### Data volume for Gaming DL (Bytes)"""
+
+db_user_Gaming_DL = db.groupby(["MSISDN/Number"]).agg(Gaming_DL_Bytes = ("Gaming DL (Bytes)", 'sum')).sort_values(by='Gaming_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+
+# db_user_DL_Gaming = db.groupby(["MSISDN/Number"]).agg({'Gaming DL (Bytes)':'sum'}) #it works but not sorted with Bytes
+
+db_user_Gaming_DL
+
+"""### Top 10 users with largest Gaming Download"""
+
+db_user_Gaming_DL.head(10)
+
+"""### Data volume for Gaming UL (Bytes)"""
+
+db_user_Gaming_UL = db.groupby(["MSISDN/Number"]).agg(Gaming_UL_Bytes = ("Gaming UL (Bytes)", 'sum')).sort_values(by='Gaming_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Gaming_UL
+
+"""### Top 10 users with largest Gaming Upload"""
+
+db_user_Gaming_UL.head(10)
+
+"""### Data volume for Other DL"""
+
+db_user_other_DL = db.groupby(["MSISDN/Number"]).agg(Other_DL_Bytes = ("Other DL (Bytes)", 'sum')).sort_values(by='Other_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_other_DL
+
+"""### Top 10 users with largest Other Services Download"""
+
+db_user_other_DL.head(10)
+
+"""### Data Volume for Other UL"""
+
+db_user_other_UL = db.groupby(["MSISDN/Number"]).agg(Other_UL_Bytes = ("Other UL (Bytes)", 'sum')).sort_values(by='Other_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_other_UL
+
+"""### Top 10 users with largest Other Services Download"""
+
+db_user_other_UL.head(10)
+
+"""#Top 10 users with largest Total Download"""
+
+db_user_Total_DL = db.groupby(["MSISDN/Number"]).agg(Total_DL_Bytes = ("Total DL (Bytes)", 'sum')).sort_values(by='Total_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Total_DL.head(10)
+
+"""### Top 10 users with largest Total Uploads"""
+
+db_user_Total_UL = db.groupby(["MSISDN/Number"]).agg(Total_UL_Bytes = ("Total UL (Bytes)", 'sum')).sort_values(by='Total_UL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Total_UL.head(10)
+
+"""### Top 3 most used applications"""
+
+social_total = db["Social Media DL (Bytes)"].sum() + db["Social Media UL (Bytes)"].sum()
+
+google_total = db["Google DL (Bytes)"].sum() + db["Google UL (Bytes)"].sum()
+email_total = db["Email DL (Bytes)"].sum() + db["Email UL (Bytes)"].sum()
+youtube_total = db["Youtube DL (Bytes)"].sum() + db["Youtube UL (Bytes)"].sum()
+netflix_total = db["Netflix DL (Bytes)"].sum() + db["Netflix UL (Bytes)"].sum()
+gaming_total = db["Gaming DL (Bytes)"].sum() + db["Gaming UL (Bytes)"].sum()
+other_total = db["Other DL (Bytes)"].sum() + db["Other UL (Bytes)"].sum()
+
+dict_bytes = {"Total Social Media Bytes":social_total, "Total Google Bytes":google_total,"Total Email Bytes":email_total, 
+              "Total YouTube Bytes":youtube_total,"Total Netflix Bytes":netflix_total, 
+              "Total Gaming Bytes": gaming_total, "Total Other Services Bytes":other_total}
+
+max_3_keys = sorted(dict_bytes, key=dict_bytes.get, reverse=True)
+for key in max_3_keys:
+  print(f"{key} : {dict_bytes[key]}\n")
+
+"""### Top 3 most used applications"""
+
+max_3_keys = sorted(dict_bytes, key=dict_bytes.get, reverse=True)[:3]
+for key in max_3_keys:
+  print(f"{key} : {dict_bytes[key]}\n")
+
+"""## K-Means clustering for each metric
+
+### Normalize each metrics
+* Frequency
+* Duration of session - already normalized
+* Total DL - already normalized
+* Total UL -already normalized
+
+#### Normalized Total DL
+"""
+
+db_sklearn['Total DL (Bytes)'].head()
+
+"""#### Normalized Total UL"""
+
+db_sklearn['Total UL (Bytes)'].head()
+
+"""#### Normalized Duration"""
+
+db_sklearn['Dur. (ms)'].head()
+
+# min_max_scaler = preprocessing.MinMaxScaler()
+
+# dur_norm = (db_sklearn['Dur. (ms)'].values).reshape(-1,1) #returns a numpy array, reshape the feature
+# dur_norm_scaled = min_max_scaler.fit_transform(dur_norm)
+# db_sklearn[["Dur. (ms)"]] = pd.DataFrame(dur_norm_scaled)
+# db_sklearn['Dur. (ms)'].head()
+
+"""### Data Scaling and Encoding
+
+#### Drop some columns
+"""
+
+print("Numeric scaled data:\n")
+db_sklearn.head() # scaled data
+
+columns_drop = ['Start','Start ms', 'End', 'End ms', 'IMSI','IMEI','Last Location Name','Dur. (ms).1']
+db_drop_col = db_sklearn.copy()
+db_drop_col=db_sklearn.drop(columns_drop, axis=1)
+print("Data with some columns dropped: \n")
+db_drop_col.head()
+
+db_drop_col.shape
+
+db_encoded = db_drop_col.copy()
+lb = LabelEncoder() 
+column_encoded = ['Handset Manufacturer', 'Handset Type']
+
+
+def db_encoding (df):
+  for column in column_encoded:
+    df[column] = lb.fit_transform(df[column])
+  return df
+
+db_encooded = db_encoding(db_encoded)
+print("Data with categorical data encoded:\n")
+db_encoded.head()
+
+"""### Cluster function"""
+
+# def cluster(df, n_clusters):
+#     k_means = KMeans(n_clusters=n_clusters)
+#     y = k_means.fit_predict(df)
+#     return y, k_means
+
+# db_user_dur_clstr= cluster(db_user_Duration, 3)
+# db_user_dur_clstr[1]
+
+db_user_Duration.head()
+
+db_cluster = db_sklearn[['IMEI', 'Dur. (ms)']]#.concat(db_user_Duration)
+kmeans = KMeans(n_clusters=3)
+kmeans.fit(db_cluster)
+
+centroids = kmeans.cluster_centers_
+centroids = pd.DataFrame(centroids, columns=['Duration'])
+centroids.index = np.arange(1, len(centroids)+1) # Start the index from 1
+centroids
+
+plt.figure(figsize=(12,6))
+sns.set_palette("pastel")
+sns.scatterplot(x=db_cluster['MSISDN/Number'], y = db_cluster['Dur. (ms)'], palette='bright') #data['Assault'], hue=data['Cluster'], palette='bright')
+
+# db_cluster = db_encoded.copy()
+# kmeans = KMeans(n_clusters=3).fit(db_cluster)
+# centroids = kmeans.cluster_centers_
+# print(centroids)
+
+# # plt.scatter(db_cluster['MSISDN/Number'], db_cluster['Dur. (ms)'])#, c= kmeans.labels_.astype(float), s=50, alpha=0.5)
+# # plt.scatter(centroids[:, 0], centroids[:, 0], c='red', s=20)
+# # plt.show()
+
+# plt.figure(figsize=(12,6))
+# sns.set_palette("pastel")
+# sns.scatterplot(x=db_cluster['MSISDN/Number'], y = db_cluster['Dur. (ms)'], palette='bright') #data['Assault'], hue=data['Cluster'], palette='bright')
+# plt.scatter(centroids[:, 0], centroids[:, 0], c='red', s=20)
+# plt.show()
+
+db.isna().sum()
+
+"""# User Experience Analysis
+* AVG TCP Retrans
+* AVG RTT
+* AVG TR
+* Handset Type
+
+### TCP DL Retramsmission
+"""
+
+db_user_TCP_DL_RT = db.groupby(["MSISDN/Number"]).agg(TCP_DL_RT = ("TCP DL Retrans. Vol (Bytes)", 'sum')).sort_values(by='TCP_DL_RT', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_TCP_DL_RT
+
+"""### Top 10 TCP DL Retramsmission"""
+
+db_user_TCP_DL_RT.head(10)
+
+"""### Bottom 10 TCP DL Retransmissions"""
+
+db_user_TCP_DL_RT.tail(10)
+
+"""### 10 most frequent TCP DL Reteransmissions"""
+
+db_user_TCP_DL_RT_count = db.groupby(["MSISDN/Number"]).agg(TCP_DL_RT_Count = ("TCP DL Retrans. Vol (Bytes)", 'value_counts')).sort_values(by='TCP_DL_RT_Count', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_TCP_DL_RT_count.head(10)
+
+"""### TCP UL Retransmission"""
+
+db_user_TCP_UL_RT = db.groupby(["MSISDN/Number"]).agg(TCP_UL_RT = ("TCP UL Retrans. Vol (Bytes)", 'sum')).sort_values(by='TCP_UL_RT', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_TCP_UL_RT
+
+"""### Top 10 TCP UL Retransmissions"""
+
+db_user_TCP_UL_RT.head(10)
+
+"""### Bottom 10 TCP UL Retransmissions"""
+
+db_user_TCP_UL_RT.tail(10)
+
+"""### 10 most frequent TCP UL Reteransmissions"""
+
+db_user_TCP_UL_RT_count = db.groupby(["MSISDN/Number"]).agg(TCP_UL_RT_Count = ("TCP UL Retrans. Vol (Bytes)", 'value_counts')).sort_values(by='TCP_UL_RT_Count', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_TCP_UL_RT_count.head(10)
+
+"""### Average RTT DL"""
+
+db_user_RTT_DL = db.groupby(["MSISDN/Number"]).agg(AVG_RTT_DL = ("Avg RTT DL (ms)", 'sum')).sort_values(by='AVG_RTT_DL', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_RTT_DL
+
+"""### Top 10 Average RTT DL"""
+
+db_user_RTT_DL.head(10)
+
+"""### Bottom 10 Average RTT DL"""
+
+db_user_RTT_DL.tail(10)
+
+"""### 10 most frequnet RTT DL"""
+
+db_user_RTT_DL_count = db.groupby(["MSISDN/Number"]).agg(AVG_RTT_DL_Count = ("Avg RTT DL (ms)", 'value_counts')).sort_values(by='AVG_RTT_DL_Count', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_RTT_DL_count.head(10)
+
+"""### Average RTT UL"""
+
+db_user_RTT_UL = db.groupby(["MSISDN/Number"]).agg(AVG_RTT_UL = ("Avg RTT UL (ms)", 'sum')).sort_values(by='AVG_RTT_UL', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_RTT_UL
+
+"""### Top 10 Average RTT UL"""
+
+db_user_RTT_UL.head(10)
+
+"""### Bottom 10 Average RTT UL"""
+
+db_user_RTT_UL.tail(10)
+
+"""### 10 most frequent RTT UL"""
+
+db_user_RTT_UL_count = db.groupby(["MSISDN/Number"]).agg(AVG_RTT_UL_Count = ("Avg RTT UL (ms)", 'value_counts')).sort_values(by='AVG_RTT_UL_Count', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_RTT_UL_count.head(10)
+
+"""### Average Session DL Throughput"""
+
+db_user_TP_DL = db.groupby(["MSISDN/Number"]).agg(AVG_TP_DL = ("Avg Bearer TP DL (kbps)", 'sum')).sort_values(by='AVG_TP_DL', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_TP_DL
+
+"""### Top 10 Session DL Throughput"""
+
+db_user_TP_DL.head(10)
+
+"""### Bottom 10 Session DL Throughput"""
+
+db_user_TP_DL.tail(10)
+
+"""### 10 most frequent session DL Throughput"""
+
+db_user_TP_DL_count = db.groupby(["MSISDN/Number"]).agg(AVG_TP_DL_Count = ("Avg Bearer TP DL (kbps)", 'value_counts')).sort_values(by='AVG_TP_DL_Count', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_TP_DL_count.head(10)
+
+"""### Average Session UL Throughput"""
+
+db_user_TP_UL = db.groupby(["MSISDN/Number"]).agg(AVG_TP_UL = ("Avg Bearer TP UL (kbps)", 'sum')).sort_values(by='AVG_TP_UL', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_TP_UL
+
+"""### Top 10 Session UL Throughput"""
+
+db_user_TP_UL.head(10)
+
+"""### Bottom 10 Session UL Throughput"""
+
+db_user_TP_UL.tail(10)
+
+"""### 10 most frequent session UL Throughput"""
+
+db_user_TP_UL_count = db.groupby(["MSISDN/Number"]).agg(AVG_TP_UL_Count = ("Avg Bearer TP UL (kbps)", 'value_counts')).sort_values(by='AVG_TP_UL_Count', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_TP_UL_count.head(10)
+
+"""### Handset Tyep and number of handsets used per user"""
+
+db_user_HandsetT = db.groupby(["MSISDN/Number"]).agg(Handset_Count = ("Handset Type", 'value_counts')).sort_values(by='Handset_Count', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_HandsetT
+
+"""## User Experience clustering"""
+
+# db_cluster = db_sklearn[['Avg Bearer TP UL (kbps)']]#.concat(db_user_Duration)
+# kmeans = KMeans(n_clusters=3)
+# kmeans.fit(db_cluster)
+
+# centroids = kmeans.cluster_centers_
+# centroids = pd.DataFrame(centroids, columns=['Avg Bearer TP UL (kbps)'])
+# centroids.index = np.arange(1, len(centroids)+1) # Start the index from 1
+# centroids
+
+# plt.figure(figsize=(12,6))
+# sns.set_palette("pastel")
+# sns.scatterplot(x=db_cluster['MSISDN/Number'], y = db_cluster['Avg Bearer TP UL (kbps)'], palette='bright') #data['Assault'], hue=data['Cluster'], palette='bright')
+
+"""### Top features for modeling"""
+
+# col = ['Total UL (Bytes)', 'Total DL (Bytes)']
+# y = db_encoded[col]
+# # y
+
+# len(db_encoded.columns.tolist())
+
+# top_features = SelectKBest(score_func=f_regression, k=10)
+# fit = top_features.fit(db_encoded, y)
+
+# np.set_printoptions(precision=3)
+# print(fit.scores_)
+
+# for i in range(len(fit.scores_)):
+# 	print('Feature %d: %f' % (i, fit.scores_[i]))
+# # plot the scores
+# # plt.bar([i for i in range(len(fit.scores_))], fit.scores_)
+# # plt.show()
+
+# xtrain,xtest, ytrain, ytest = train_test_split(db_encoded, y, test_size = 0.2, random_state=None)
+
+# # creating scaler scale var.
+# norm = MinMaxScaler()
+# # fit the scal
+# norm_fit = norm.fit(xtrain)
+# pickle.dump(norm_fit, open("train_set.pkl", 'wb'))
+# dump(norm_fit,'train_set.joblib')
+# # transfromation of trainig data
+# scal_xtrain_set = norm_fit.transform(xtrain)
+
+# # transformation of testing data
+# scal_xtest_set = norm_fit.transform(xtest)
+# print(scal_xtrain_set)
+
+"""#### Fit the model with RandomForest classifier"""
+
+# rnd_forest = RandomForestClassifier()
+# # model = KMeans(n_clusters = 3)
+  
+# # fit the model
+# # fit_rnd = rnd_forest.fit(xtrain,ytrain)
 
