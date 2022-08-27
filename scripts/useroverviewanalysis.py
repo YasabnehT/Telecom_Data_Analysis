@@ -33,8 +33,8 @@ import pickle
 
 """### Mount Google Drive to Google Colab"""
 
-from google.colab import drive
-drive.mount('/content/drive')
+# from google.colab import drive
+# drive.mount('/content/drive')
 
 """# Data Understanding
 
@@ -43,34 +43,34 @@ drive.mount('/content/drive')
 
 import warnings
 warnings.filterwarnings('ignore')
-pd.set_option('max_column', None)
-db = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/data/Week1_challenge_data_source(CSV).csv', na_values=['undefined','?', None])
-# db.head() # the fisrt five rows
+# pd.set_option('max_column', None)
+db = pd.read_csv('/home/the/projects/10-Academy/Week 1/Telecom_Data_Analysis/data/Week1_challenge_data_source(CSV).csv', na_values=['undefined','?', None])
+db.head() # the fisrt five rows
 
 """# Size of the dataset
 ### Columns of the dataset
 """
 
 # list of column  names
-# db.columns.tolist()
+db.columns.tolist()
 
 """### Number of columns"""
 
-# print(f"Number of columns: ", len(db.columns))
+print(f"Number of columns: ", len(db.columns))
 
 """### Number of data points and data size"""
 
-# print(f" There are {db.shape[0]} rows and {db.shape[1]} columns")
+print(f" There are {db.shape[0]} rows and {db.shape[1]} columns")
 
 """### Features/columns and their data type"""
 
-# db.dtypes
+db.dtypes
 
 """### Min and Max values of each column"""
 
-# db.max()
+db.max()
 
-# db.min()
+db.min()
 
 """### Utility Functions"""
 
@@ -227,16 +227,16 @@ percent_missing(db)
 
 """### Missing Value table"""
 
-# missing_values_table(db)
+missing_values_table(db)
 
 """### Columns with missing values count
 
 The Column "Nb of sec with 37500B < Vol UL" has maximum missing values of 130254 occurances
 """
 
-# db.isna().sum() # missing values of each column
+db.isna().sum() # missing values of each column
 
-# print ("Maximum missing values per column: ", np.max(db.isna().sum())) # print(db.isna().sum().max())
+print ("Maximum missing values per column: ", np.max(db.isna().sum())) # print(db.isna().sum().max())
 
 """# Exploratory Data Analysis
 
@@ -249,23 +249,23 @@ Use Mode method to fill the missing datapoints of all 'object' type features and
 #### Skewness of each column
 """
 
-# db.skew(axis=0)
+db.skew(axis=0)
 
 """### Skewness visualization with histogram"""
 
-# db['Total UL (Bytes)'].hist()
+db['Total UL (Bytes)'].hist()
 
 """### Positively skewed parameter"""
 
-# db['UL TP < 10 Kbps (%)'].hist()
+db['UL TP < 10 Kbps (%)'].hist()
 
 """### Negatively skewwed parameter"""
 
-# db['UL TP < 10 Kbps (%)'].hist()
+db['UL TP < 10 Kbps (%)'].hist()
 
 """### Data with total missing values in each column - revisited"""
 
-# db.isna().sum()
+db.isna().sum()
 
 """### Fill missing values
 * numeric missing values with mean method
@@ -283,7 +283,7 @@ fill_missing_values(db).isna().sum()
 
 # db.interpolate(inplace=True)
 
-# db.isna().sum()
+db.isna().sum()
 
 """# Data Transformation
 **Scaling and Normalization**
@@ -354,11 +354,11 @@ important_columns_numeric = ['Bearer Id','Dur. (ms)','MSISDN/Number',
 
 important_columns_object = ['Handset Manufacturer','Handset Type']
 
-# db[important_columns_numeric].mean() #mean of numeric columns
+db[important_columns_numeric].mean() #mean of numeric columns
 
 # db[important_columns_numeric].median()
 
-# db[important_columns_object].mode()
+db[important_columns_object].mode()
 
 """# User Overview Analysis
 
@@ -369,175 +369,175 @@ important_columns_object = ['Handset Manufacturer','Handset Type']
 ### Numeric Univariate EDA
 """
 
-# db_explore = db.copy()
-# fix_outlier(db_explore, "MSISDN/Number")
+db_explore = db.copy()
+fix_outlier(db_explore, "MSISDN/Number")
 
-# plot_hist(db_explore.head(10000),"MSISDN/Number" ,'green')
+plot_hist(db_explore.head(10000),"MSISDN/Number" ,'green')
 
-# plot_hist(db_explore, "Dur. (ms)", "green")
+plot_hist(db_explore, "Dur. (ms)", "green")
 
-# plot_hist(db_explore, "Bearer Id", "green")
+plot_hist(db_explore, "Bearer Id", "green")
 
-# plot_hist(db_explore, "Avg RTT DL (ms)", "green")
+plot_hist(db_explore, "Avg RTT DL (ms)", "green")
 
-# plot_hist(db_explore, "Avg RTT UL (ms)", "green")
+plot_hist(db_explore, "Avg RTT UL (ms)", "green")
 
-# plot_hist(db_explore.head(50000), "Handset Manufacturer", "blue")
+plot_hist(db_explore.head(50000), "Handset Manufacturer", "blue")
 
-# plot_hist(db_explore.head(50000), "Handset Type", "blue")
+plot_hist(db_explore.head(50000), "Handset Type", "blue")
 
-# plot_hist(db_explore, "Social Media DL (Bytes)", "green")
+plot_hist(db_explore, "Social Media DL (Bytes)", "green")
 
 # sns.histplot(x=columns[0], data =db) # this also works
-# plot_hist(db_explore, "Social Media UL (Bytes)", "green")
+plot_hist(db_explore, "Social Media UL (Bytes)", "green")
 
-# plot_hist(db_explore, "Total DL (Bytes)", "green")
+plot_hist(db_explore, "Total DL (Bytes)", "green")
 
-# plot_hist(db_explore, "Total UL (Bytes)", "green")
+plot_hist(db_explore, "Total UL (Bytes)", "green")
 
-# plot_box(db_explore, "Dur. (ms)", "Session Duration Outliers")
+plot_box(db_explore, "Dur. (ms)", "Session Duration Outliers")
 
-# plot_box(db_explore, "Avg RTT DL (ms)", "Avg RTT DL (ms) Outliers")
+plot_box(db_explore, "Avg RTT DL (ms)", "Avg RTT DL (ms) Outliers")
 
-# plot_box(db_explore, "Avg RTT UL (ms)", "Avg RTT UL (ms) Outliers")
+plot_box(db_explore, "Avg RTT UL (ms)", "Avg RTT UL (ms) Outliers")
 
-# plot_box(db_explore, "TCP DL Retrans. Vol (Bytes)", "TCP DL Retrans. Vol (Bytes) Outliers")
+plot_box(db_explore, "TCP DL Retrans. Vol (Bytes)", "TCP DL Retrans. Vol (Bytes) Outliers")
 
-# plot_box(db_explore, "TCP UL Retrans. Vol (Bytes)", "TCP UL Retrans. Vol (Bytes) Outliers")
+plot_box(db_explore, "TCP UL Retrans. Vol (Bytes)", "TCP UL Retrans. Vol (Bytes) Outliers")
 
-# plot_box(db_explore, "Social Media DL (Bytes)", "Social Media DL (Bytes) Outliers")
+plot_box(db_explore, "Social Media DL (Bytes)", "Social Media DL (Bytes) Outliers")
 
-# plot_box(db_explore, "Social Media UL (Bytes)", "Social Media UL (Bytes) Outliers")
+plot_box(db_explore, "Social Media UL (Bytes)", "Social Media UL (Bytes) Outliers")
 
-# plot_box(db_explore, "Total DL (Bytes)", "Total DL (Bytes) Outliers")
+plot_box(db_explore, "Total DL (Bytes)", "Total DL (Bytes) Outliers")
 
-# plot_box(db_explore, "Total UL (Bytes)", "Total UL (Bytes) Outliers")
+plot_box(db_explore, "Total UL (Bytes)", "Total UL (Bytes) Outliers")
 
 """### Categorical Univariate EDA"""
 
-# plot_count(db_explore, "Handset Manufacturer")
+plot_count(db_explore, "Handset Manufacturer")
 
-# plot_count(db_explore, "Handset Type")
+plot_count(db_explore, "Handset Type")
 
 """### Non-Graphical Univariate EDA"""
 
-# db.describe()
+db.describe()
 
-# db["Total DL (Bytes)"].describe()
+db["Total DL (Bytes)"].describe()
 
-# db["Total UL (Bytes)"].describe()
+db["Total UL (Bytes)"].describe()
 
-# db["MSISDN/Number"].describe()
+db["MSISDN/Number"].describe()
 
-# db.info()
+db.info()
 
-# db.isna().sum()
+db.isna().sum()
 
-# db_explore_100 = db_explore.head(100)
+db_explore_100 = db_explore.head(100)
 
 """## Bivariate Analysis
 #### Applications Vs Total DL and Total UL
 """
 
-# sns.barplot(x='Total DL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
+sns.barplot(x='Total DL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
 
-# sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore.head(1000))
+sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore.head(1000))
 
-# sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
+sns.barplot(x='Total DL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
 
-# sns.barplot(x='Total UL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
+sns.barplot(x='Total UL (Bytes)',y='Social Media DL (Bytes)',data=db_explore_100)
 
-# sns.barplot(x='Total UL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
+sns.barplot(x='Total UL (Bytes)',y='Social Media UL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total DL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total DL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total DL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total DL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total UL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total UL (Bytes)',y='Google DL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total UL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total UL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
 
-# sns.stripplot(x='Total DL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
+sns.stripplot(x='Total DL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
 
-# sns.stripplot(x='Total DL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
-# sns.stripplot(x='Total UL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
+sns.stripplot(x='Total DL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
+sns.stripplot(x='Total UL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
 
-# sns.stripplot(x='Total UL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
+sns.stripplot(x='Total UL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total DL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total DL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total DL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total DL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total UL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total UL (Bytes)',y='Youtube DL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total UL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total UL (Bytes)',y='Youtube UL (Bytes)',data=db_explore_100)
 
-# sns.barplot(x='Total DL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
+sns.barplot(x='Total DL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
 
-# sns.barplot(x='Total DL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
+sns.barplot(x='Total DL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
 
-# sns.barplot(x='Total UL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
+sns.barplot(x='Total UL (Bytes)',y='Netflix DL (Bytes)',data=db_explore_100)
 
-# sns.barplot(x='Total UL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
+sns.barplot(x='Total UL (Bytes)',y='Netflix UL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total DL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total DL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total DL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total DL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total UL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total UL (Bytes)',y='Gaming DL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total UL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total UL (Bytes)',y='Gaming UL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total DL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total DL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total DL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total DL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total UL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total UL (Bytes)',y='Other DL (Bytes)',data=db_explore_100)
 
-# sns.regplot(x='Total UL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
+sns.regplot(x='Total UL (Bytes)',y='Other UL (Bytes)',data=db_explore_100)
 
 """##Multivariate Analysis"""
 
-# plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Social Media DL (Bytes)", hue="Social Media UL (Bytes)",
-#              style="Social Media UL (Bytes)", title="Social media DL consumption per user")
+plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Social Media DL (Bytes)", hue="Social Media UL (Bytes)",
+             style="Social Media UL (Bytes)", title="Social media DL consumption per user")
 
-# plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Total DL (Bytes)", hue="Total UL (Bytes)",
-#              style="Total UL (Bytes)", title="Total DL consumption per user")
+plot_scatter(db_explore.head(100), x_col="MSISDN/Number", y_col="Total DL (Bytes)", hue="Total UL (Bytes)",
+             style="Total UL (Bytes)", title="Total DL consumption per user")
 
-# plot_box_multi(db_explore.head(100), x_col="MSISDN/Number", y_col="TCP DL Retrans. Vol (Bytes)", 
-#                title="TCP DL Retrans. Vol (Bytes) outilers in MSISDN/Number column")
+plot_box_multi(db_explore.head(100), x_col="MSISDN/Number", y_col="TCP DL Retrans. Vol (Bytes)", 
+               title="TCP DL Retrans. Vol (Bytes) outilers in MSISDN/Number column")
 
-# dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
+dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
 
-# sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',
-#              plot_kws = {'alpha': 0.6, 's': 80, 'edgecolor': 'k'},
-#              height=4)
+sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',
+             plot_kws = {'alpha': 0.6, 's': 80, 'edgecolor': 'k'},
+             height=4)
 
-# dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
-# sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',height=4)
+dfPair = db_explore.head(50)[["MSISDN/Number", "Dur. (ms)", "Avg RTT DL (ms)", "Social Media DL (Bytes)", "Total DL (Bytes)"]]
+sns.pairplot(dfPair, hue = 'Total DL (Bytes)', diag_kind = 'kde',height=4)
 
 """# Deciles
 
 ### Decile Columns
 """
 
-# decile_columns = ['MSISDN/Number','Dur. (ms)','Total UL (Bytes)', 'Total DL (Bytes)' ] # to limit the number of columns to be displayed
-# db_decile = db_explore[decile_columns]
-# # db_decile_group["Dur. Decile"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
-# # db_decile_group
+decile_columns = ['MSISDN/Number','Dur. (ms)','Total UL (Bytes)', 'Total DL (Bytes)' ] # to limit the number of columns to be displayed
+db_decile = db_explore[decile_columns]
+# db_decile_group["Dur. Decile"] = pd.qcut(db_decile_group['Dur. (ms)'], 5, labels = ['Dec 1','Dec 2','Dec 3','Dec 4','Dec 5'])
+# db_decile_group
 
 """### Five MSISDN deciles based on xDR Duration
 #### contains all selected columns
 """
 
-# db_decile_group_dur = db_decile.groupby(pd.qcut(db_decile["Dur. (ms)"], 5))
-# db_decile_group_dur.describe() # includes all selected columns
+db_decile_group_dur = db_decile.groupby(pd.qcut(db_decile["Dur. (ms)"], 5))
+db_decile_group_dur.describe() # includes all selected columns
 
 """### Deciles based on xDR duration
 ### Contains only the xDR duration data
 """
 
-# db_decile_group_dur['Dur. (ms)'].describe()
+db_decile_group_dur['Dur. (ms)'].describe()
 
 """### Decile Total DL Bytes sum
 
@@ -545,13 +545,13 @@ important_columns_object = ['Handset Manufacturer','Handset Type']
 
 """
 
-# db_decile_group_dur['Total DL (Bytes)'].sum()
+db_decile_group_dur['Total DL (Bytes)'].sum()
 
 """### Decile Total UL Bytes sum
 
 """
 
-# db_decile_group_dur['Total UL (Bytes)'].sum()
+db_decile_group_dur['Total UL (Bytes)'].sum()
 
 """## Correlation Analysis
 
@@ -559,7 +559,7 @@ important_columns_object = ['Handset Manufacturer','Handset Type']
 
 """
 
-# db.corr(method='pearson')
+db.corr(method='pearson')
 
 """### Correlation Analysis for individual columns
 * Can be calculated using 'pearson’, ‘kendall’, ‘spearman methods; pearson being the standard correlation coefficient
@@ -567,43 +567,43 @@ important_columns_object = ['Handset Manufacturer','Handset Type']
 
 """
 
-# cor_columns = ['Social Media DL (Bytes)', 'Social Media UL (Bytes)', 'Google DL (Bytes)', 'Google UL (Bytes)',
-#                'Email DL (Bytes)', 'Email UL (Bytes)', 'Youtube DL (Bytes)', 'Youtube UL (Bytes)', 
-#                'Netflix DL (Bytes)', 'Netflix UL (Bytes)', 'Gaming DL (Bytes)', 'Gaming UL (Bytes)', 'Other DL (Bytes)', 'Other UL (Bytes)'] 
-# db[cor_columns].corr(method='pearson')
+cor_columns = ['Social Media DL (Bytes)', 'Social Media UL (Bytes)', 'Google DL (Bytes)', 'Google UL (Bytes)',
+               'Email DL (Bytes)', 'Email UL (Bytes)', 'Youtube DL (Bytes)', 'Youtube UL (Bytes)', 
+               'Netflix DL (Bytes)', 'Netflix UL (Bytes)', 'Gaming DL (Bytes)', 'Gaming UL (Bytes)', 'Other DL (Bytes)', 'Other UL (Bytes)'] 
+db[cor_columns].corr(method='pearson')
 
 """### Unapproximated pairwise Correlation coefficients"""
 
-# db[cor_columns[0]].corr(db[cor_columns[1]], method = 'pearson')
+db[cor_columns[0]].corr(db[cor_columns[1]], method = 'pearson')
 
 def Iterative_corr():
   for i in range(0,len(cor_columns)):
     print(f"Correlation between {cor_columns[i-1]} and {cor_columns[i]} is {db[cor_columns[i-1]].corr(db[cor_columns[i]], method = 'pearson')}")
 
-# Iterative_corr()
+Iterative_corr()
 
 """## Principal Component Analysis"""
 
-# db_explore_PCA = PCA(n_components=5)
+db_explore_PCA = PCA(n_components=5)
 
-# db_explore_numeric = db_explore[important_columns_numeric]
-# db_explore_PC = db_explore_PCA.fit_transform(db_explore_numeric)
+db_explore_numeric = db_explore[important_columns_numeric]
+db_explore_PC = db_explore_PCA.fit_transform(db_explore_numeric)
 
-# principal_db_explore_df = pd.DataFrame(data = db_explore_PC,
-#                         columns = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5'])
-# principal_db_explore_df.head()
+principal_db_explore_df = pd.DataFrame(data = db_explore_PC,
+                        columns = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5'])
+principal_db_explore_df.head()
 
-# print(f'Explained variation per principal component: {db_explore_PCA.explained_variance_ratio_}')
+print(f'Explained variation per principal component: {db_explore_PCA.explained_variance_ratio_}')
 
 """# User Engagement Analysis
 
 ### Top 10 Handsets used
 """
 
-# db_hndset_count = db['Handset Type'].value_counts()
-# top_10_hndsets = db_hndset_count.head(10)
-# print("Most used handset types in Descending order:\n", db_hndset_count)
-# print("\n\nTop 10 handsets used: \n", top_10_hndsets)
+db_hndset_count = db['Handset Type'].value_counts()
+top_10_hndsets = db_hndset_count.head(10)
+print("Most used handset types in Descending order:\n", db_hndset_count)
+print("\n\nTop 10 handsets used: \n", top_10_hndsets)
 
 """### Top 3 handset manufacturers"""
 
