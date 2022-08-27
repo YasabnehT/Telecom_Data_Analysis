@@ -64,7 +64,7 @@ print(f" There are {db.shape[0]} rows and {db.shape[1]} columns")
 
 """### Features/columns and their data type"""
 
-db.dtypes
+# db.astype(str).dtypes
 
 """### Min and Max values of each column"""
 
@@ -1146,3 +1146,16 @@ db_user_HandsetT
 # # fit the model
 # # fit_rnd = rnd_forest.fit(xtrain,ytrain)
 
+
+
+# # rnd_forest = RandomForestClassifier()
+# xtrain, ytrain, xtest,ytest = train_test_split(db_explore[['MSISDN/Number', "Total DL (Bytes)"]], y, test_size = 0.2, random_state=None)
+# model = KMeans(n_clusters = 3)
+  
+# # fit the model   Avg Bearer TP UL (kbps)
+# fit_rnd = model.fit(xtrain) 
+
+# plt.figure(figsize=(12,6))
+# sns.set_palette("pastel")
+# #lineplot, swarmplot,stripplot, scatterplot
+# sns.stripplot(data = db_explore, x='MSISDN/Number', y = 'Total DL (Bytes)', palette='bright') #data['Assault'], hue=data['Cluster'], palette='bright')
