@@ -28,13 +28,14 @@ from joblib import dump,load
 from sklearn.ensemble import RandomForestClassifier
 
 from sklearn.cluster import KMeans
-
+import sklearn.cluster as cluster
+import scipy.spatial.distance as sdist
 import pickle
 
 """### Mount Google Drive to Google Colab"""
 
-# from google.colab import drive
-# drive.mount('/content/drive')
+from google.colab import drive
+drive.mount('/content/drive')
 
 """# Data Understanding
 
@@ -43,8 +44,8 @@ import pickle
 
 import warnings
 warnings.filterwarnings('ignore')
-# pd.set_option('max_column', None)
-db = pd.read_csv('/home/the/projects/10-Academy/Week 1/Telecom_Data_Analysis/data/Week1_challenge_data_source(CSV).csv', na_values=['undefined','?', None])
+pd.set_option('max_column', None)
+db = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/data/Week1_challenge_data_source(CSV).csv', na_values=['undefined','?', None])
 db.head() # the fisrt five rows
 
 """# Size of the dataset
@@ -64,7 +65,7 @@ print(f" There are {db.shape[0]} rows and {db.shape[1]} columns")
 
 """### Features/columns and their data type"""
 
-# db.astype(str).dtypes
+db.dtypes
 
 """### Min and Max values of each column"""
 
@@ -265,7 +266,7 @@ db['UL TP < 10 Kbps (%)'].hist()
 
 """### Data with total missing values in each column - revisited"""
 
-db.isna().sum()
+# db.isna().sum()
 
 """### Fill missing values
 * numeric missing values with mean method
@@ -283,7 +284,7 @@ fill_missing_values(db).isna().sum()
 
 # db.interpolate(inplace=True)
 
-db.isna().sum()
+# db.isna().sum()
 
 """# Data Transformation
 **Scaling and Normalization**
@@ -378,22 +379,28 @@ plot_hist(db_explore, "Dur. (ms)", "green")
 
 plot_hist(db_explore, "Bearer Id", "green")
 
-plot_hist(db_explore, "Avg RTT DL (ms)", "green")
+sns.regplot(data = db_explore,x="Avg RTT DL (ms)",y="Avg RTT UL (ms)" ) #sns.barplot(,y='Social Media UL (Bytes)',data=db_explore.head(1000))
 
-plot_hist(db_explore, "Avg RTT UL (ms)", "green")
+# plot_hist(db, "Avg RTT UL (ms)", "green")
 
 plot_hist(db_explore.head(50000), "Handset Manufacturer", "blue")
 
 plot_hist(db_explore.head(50000), "Handset Type", "blue")
+
+# sns.regplot(data = db_encoded,x="Handset Type",y="Handset Manufacturer" ) #sns.barplot(,y='Social Media UL (Bytes)',data=db_explore.head(1000))
 
 plot_hist(db_explore, "Social Media DL (Bytes)", "green")
 
 # sns.histplot(x=columns[0], data =db) # this also works
 plot_hist(db_explore, "Social Media UL (Bytes)", "green")
 
+sns.regplot(data = db,x="Social Media DL (Bytes)",y="Social Media UL (Bytes)" ) #sns.barplot(,y='Social Media UL (Bytes)',data=db_explore.head(1000))
+
 plot_hist(db_explore, "Total DL (Bytes)", "green")
 
 plot_hist(db_explore, "Total UL (Bytes)", "green")
+
+sns.regplot(data = db,x="Total DL (Bytes)",y="Total UL (Bytes)" ) #sns.barplot(,y='Social Media UL (Bytes)',data=db_explore.head(1000))
 
 plot_box(db_explore, "Dur. (ms)", "Session Duration Outliers")
 
@@ -460,6 +467,7 @@ sns.regplot(x='Total UL (Bytes)',y='Google UL (Bytes)',data=db_explore_100)
 sns.stripplot(x='Total DL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
 
 sns.stripplot(x='Total DL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
+
 sns.stripplot(x='Total UL (Bytes)',y='Email DL (Bytes)',data=db_explore_100)
 
 sns.stripplot(x='Total UL (Bytes)',y='Email UL (Bytes)',data=db_explore_100)
@@ -624,11 +632,11 @@ print("Manufacturers-handset pair:\n", top_3_manufact_5_hndset)
 """
 
 db['Bearer Id'].value_counts() # Each xDR occurances aggregated
-# db.value_counts('Bearer Id') also works
+# db.value_counts('Bearer Id') #also works
 
 """### 10 most frequent sessions"""
 
-db['Bearer Id'].value_counts()#.head(10)
+db['Bearer Id'].value_counts().head(10)
 
 """### Frequency of each User(MSISDN/Number)"""
 
@@ -699,10 +707,119 @@ db_user_UL_data.head(10)
 db_user_DL_data = db.groupby(["MSISDN/Number"]).agg(Total_DL_Bytes = ("Total DL (Bytes)", 'sum')).sort_values(by='Total_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
 db_user_DL_data
 
-"""### Top 10 Users with highest Download Bytes"""
+"""### Top 10 Users with highest Total Download Bytes"""
 
 db_user_DL_data = db.groupby(["MSISDN/Number"]).agg(Total_DL_Bytes = ("Total DL (Bytes)", 'sum')).sort_values(by='Total_DL_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
 db_user_DL_data.head(10)
+
+"""## User-Total Bytes Aggregation"""
+
+# Total Bytes (Total UL + Total DL)
+db_Total_Bytes = db.copy()
+db_Total_Bytes["Total Bytes"] = db["Total DL (Bytes)"] + db["Total UL (Bytes)"]
+
+# Total Social Media Bytes
+db_Total_Bytes["Total Social Media (Bytes)"] = db["Social Media DL (Bytes)"] + db["Social Media UL (Bytes)"]
+
+#Total Google Bytes
+db_Total_Bytes["Total Google (Bytes)"] = db["Google DL (Bytes)"] + db["Google UL (Bytes)"]
+
+#Total Youtube Bytes
+db_Total_Bytes["Total Youtube (Bytes)"] = db["Youtube DL (Bytes)"] + db["Youtube UL (Bytes)"]
+
+#Total Email Bytes
+db_Total_Bytes["Total Email (Bytes)"] = db["Email DL (Bytes)"] + db["Email UL (Bytes)"]
+
+#Total Netflix Bytes
+db_Total_Bytes["Total Netflix (Bytes)"] = db["Netflix DL (Bytes)"] + db["Netflix UL (Bytes)"]
+
+#Total Gaming Bytes
+db_Total_Bytes["Total Gaming (Bytes)"] = db["Gaming DL (Bytes)"] + db["Gaming UL (Bytes)"]
+
+#Total Other Bytes
+db_Total_Bytes["Total Other (Bytes)"] = db["Other DL (Bytes)"] + db["Other UL (Bytes)"]
+
+
+### User Experience ######
+# Total TCP Retransmission Bytes
+db_Total_Bytes["Total TCP Retrans. (Bytes)"] = db['TCP DL Retrans. Vol (Bytes)'] + db['TCP UL Retrans. Vol (Bytes)']
+
+# Total Avg RTT 
+db_Total_Bytes["Total Avg RTT (ms)"] = db['Avg RTT DL (ms)'] + db['Avg RTT UL (ms)']
+
+# Total Avg Bearer TP
+db_Total_Bytes["Total Avg TP (kbps)"] = db['Avg Bearer TP DL (kbps)'] + db['Avg Bearer TP DL (kbps)']
+
+db_totals_col = db_Total_Bytes[["MSISDN/Number",'Dur. (ms)', "Handset Type", "Total Bytes", "Total TCP Retrans. (Bytes)", 
+                "Total Avg RTT (ms)", "Total Avg TP (kbps)","Total Social Media (Bytes)", 
+               "Total Google (Bytes)", "Total Youtube (Bytes)","Total Email (Bytes)", 
+               "Total Netflix (Bytes)", "Total Gaming (Bytes)", "Total Other (Bytes)"]]
+db_totals_col.head()
+
+"""### User-Total Social Media Bytes
+
+"""
+
+db_user_Social = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_Social_Media_Bytes = ("Total Social Media (Bytes)", 'sum')).sort_values(by='Total_Social_Media_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Social
+
+"""### Top 10 Social Media Users"""
+
+db_user_Social.head(10)
+
+"""### User-Total Google Bytes"""
+
+db_user_Google = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_Google_Bytes = ("Total Google (Bytes)", 'sum')).sort_values(by='Total_Google_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Google
+
+"""### Top 10 Google Users"""
+
+db_user_Google.head(10)
+
+"""### User-Total Youtube Bytes"""
+
+db_user_Youtube = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_Youtube_Bytes = ("Total Youtube (Bytes)", 'sum')).sort_values(by='Total_Youtube_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Youtube
+
+"""### Top 10 Youtube Users"""
+
+db_user_Youtube.head(10)
+
+"""### User-Total Email Bytes"""
+
+db_user_Email = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_Email_Bytes = ("Total Email (Bytes)", 'sum')).sort_values(by='Total_Email_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Email
+
+"""### Top 10 Email Users"""
+
+db_user_Email.head(10)
+
+"""### User-Total Netflix Bytes"""
+
+db_user_Netflix = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_Netflix_Bytes = ("Total Netflix (Bytes)", 'sum')).sort_values(by='Total_Netflix_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Netflix
+
+"""### Top 10 Netflix Users"""
+
+db_user_Netflix.head(10)
+
+"""### User-Total Gaming Bytes"""
+
+db_user_Gaming = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_Gaming_Bytes = ("Total Gaming (Bytes)", 'sum')).sort_values(by='Total_Gaming_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Gaming
+
+"""### Top 10 Gaming Users"""
+
+db_user_Gaming.head(10)
+
+"""### User-Total Other Services Bytes"""
+
+db_user_Other = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_Other_Bytes = ("Total Other (Bytes)", 'sum')).sort_values(by='Total_Other_Bytes', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Other
+
+"""### Top 10 Other Services Users"""
+
+db_user_Other.head(10)
 
 """### User (MSISDN) aggregated with Social Media DL data volume"""
 
@@ -896,6 +1013,118 @@ db_sklearn['Dur. (ms)'].head()
 # db_sklearn[["Dur. (ms)"]] = pd.DataFrame(dur_norm_scaled)
 # db_sklearn['Dur. (ms)'].head()
 
+"""### Clustering Functions"""
+
+kmeans = cluster.KMeans(n_clusters = 3, init = "k-means++", max_iter = 300
+                  , n_init = 10, random_state=0)
+#Clustering function
+def Cluster(df,cols, title:str, xlabel:str, ylabel:str):
+  X = df[cols].values
+  # According to the elbow method, the nuber of clusters is 3
+  
+  # apply fit_predict -  map which sample to which cluster
+  # and return number of clusters as single vector y K-means
+  y_kmeans = kmeans.fit_predict(X)
+
+  # Visualize the clusters
+  plt.scatter(X[y_kmeans==0, 0],X[y_kmeans==0,1], s=100,c='red', label= "Cluster 1")
+  plt.scatter(X[y_kmeans==1, 0],X[y_kmeans==1,1], s=100,c='blue', label= "Cluster 2")
+  plt.scatter(X[y_kmeans==2, 0],X[y_kmeans==2,1], s=100,c='green', label= "Cluster 3")
+
+  # plot Centroids
+  plt.scatter(kmeans.cluster_centers_[:,0],
+              kmeans.cluster_centers_[:,1],s=300,c='yellow', label='Centroids')
+  plt.title(title)
+  plt.xlabel(xlabel)
+  plt.ylabel(ylabel)
+  plt.show()
+
+  print(f"\nCentroids:\n{kmeans.cluster_centers_}\n\n")
+  #Min-Max
+  print(f"Min-Max Values \n\nCluster 1:\n\n")
+  print(f"Max Value(ms) {X[y_kmeans==0,1].max()}\nMin Value(ms): {X[y_kmeans==0,1].min()}\nMean Value(ms):{X[y_kmeans==0,1].mean()}\nTotal Value(ms): {X[y_kmeans==0,1].sum()}\n\n")
+
+  print(f"Cluster 2:\n\n")
+  print(f"Max Value(ms) {X[y_kmeans==1,1].max()}\nMin Value(ms): {X[y_kmeans==1,1].min()}\nMean Value(ms):{X[y_kmeans==1,1].mean()}\nTotal Value(ms): {X[y_kmeans==1,1].sum()}\n\n")
+
+  print(f"Cluster 3:\n\n")
+  print(f"Max Value(ms) {X[y_kmeans==2,1].max()}\nMin Value(ms): {X[y_kmeans==2,1].min()}\nMean Value(ms):{X[y_kmeans==2,1].mean()}\nTotal Value(ms): {X[y_kmeans==2,1].sum()}\n\n")
+  
+  print("Optimal n_clusters - Elbow Method\n\n")
+  n_clusters_elbow(X)
+
+
+# elbow method to select n_clusters
+def n_clusters_elbow(X):
+  # uses within cluster sum of squares, WCSS
+  wcss = []
+  #fit kmeans to data and compute wcss
+  for i in range(1,11):
+    kmeans = KMeans(n_clusters = i, init = 'k-means++', 
+                    max_iter=300,n_init = 10, random_state = 0)
+    kmeans.fit(X) # fit kmeans to dataset
+  # append inertia_ - sum of squre distance of samples to their closest centroid
+    wcss.append(kmeans.inertia_) 
+
+  #plot elbow graph
+  plt.plot(range(1,11), wcss)
+  plt.title("Elbow Graph")
+  plt.xlabel("Number of clusters")
+  plt.ylabel("WCSS")
+  plt.show()
+
+"""### Session Frequncy Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'Bearer Id'], "Users' Session Clusters",'MSISDN/Number','Bearer Id')
+
+"""### Duration Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'Dur. (ms)'], "Clusters of Duration (ms)",'MSISDN/Number','Duration (ms)')
+
+"""### Min-Max for Non-Normalized Data"""
+
+Cluster(db,['MSISDN/Number', 'Dur. (ms)'], "Clusters of Duration (ms)",'MSISDN/Number','Duration (ms)')
+
+"""### Total Bytes Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Bytes'], "Total Bytes Clusters",'MSISDN/Number',"Total Bytes")
+
+"""### Total Social Media Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Social Media (Bytes)'], "Total Social Media Bytes Clusters",'MSISDN/Number',"Total Social Media (Bytes)")
+
+"""### Total Google Bytes Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Google (Bytes)'], "Total Google Bytes Clusters",'MSISDN/Number',"Total Google (Bytes)")
+
+"""### Total Email Bytes Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Email (Bytes)'], "Total Email Bytes Clusters",'MSISDN/Number',"Total Email (Bytes)")
+
+"""### Total Youtube Bytes Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Youtube (Bytes)'], "Total Youtube Bytes Clusters",'MSISDN/Number',"Total Youtube (Bytes)")
+
+"""### Total Netflix Bytes Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Netflix (Bytes)'], "Total Netflix Bytes Clusters",'MSISDN/Number',"Total Netflix (Bytes)")
+
+"""### Total Gaming Bytes Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Netflix (Bytes)'], "Total Netflix Bytes Clusters",'MSISDN/Number',"Total Netflix (Bytes)")
+
+"""### Total Other Services Bytes Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Other (Bytes)'], "Total Other Services Bytes Clusters",'MSISDN/Number',"Total Other (Bytes)")
+
+"""### Total UL Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'Total UL (Bytes)'], "Clusters of Total UL",'MSISDN/Number',"Total UL (Bytes)")
+
+"""### Min-Max for Non-Normalized Data"""
+
+Cluster(db,['MSISDN/Number', 'Total UL (Bytes)'], "Clusters of Total UL",'MSISDN/Number',"Total UL (Bytes)")
+
 """### Data Scaling and Encoding
 
 #### Drop some columns
@@ -926,56 +1155,39 @@ db_encooded = db_encoding(db_encoded)
 print("Data with categorical data encoded:\n")
 db_encoded.head()
 
-"""### Cluster function"""
-
-# def cluster(df, n_clusters):
-#     k_means = KMeans(n_clusters=n_clusters)
-#     y = k_means.fit_predict(df)
-#     return y, k_means
-
-# db_user_dur_clstr= cluster(db_user_Duration, 3)
-# db_user_dur_clstr[1]
-
 db_user_Duration.head()
-
-db_cluster = db_sklearn[['IMEI', 'Dur. (ms)']]#.concat(db_user_Duration)
-kmeans = KMeans(n_clusters=3)
-kmeans.fit(db_cluster)
-
-centroids = kmeans.cluster_centers_
-centroids = pd.DataFrame(centroids, columns=['Duration'])
-centroids.index = np.arange(1, len(centroids)+1) # Start the index from 1
-centroids
-
-plt.figure(figsize=(12,6))
-sns.set_palette("pastel")
-sns.scatterplot(x=db_cluster['MSISDN/Number'], y = db_cluster['Dur. (ms)'], palette='bright') #data['Assault'], hue=data['Cluster'], palette='bright')
-
-# db_cluster = db_encoded.copy()
-# kmeans = KMeans(n_clusters=3).fit(db_cluster)
-# centroids = kmeans.cluster_centers_
-# print(centroids)
-
-# # plt.scatter(db_cluster['MSISDN/Number'], db_cluster['Dur. (ms)'])#, c= kmeans.labels_.astype(float), s=50, alpha=0.5)
-# # plt.scatter(centroids[:, 0], centroids[:, 0], c='red', s=20)
-# # plt.show()
-
-# plt.figure(figsize=(12,6))
-# sns.set_palette("pastel")
-# sns.scatterplot(x=db_cluster['MSISDN/Number'], y = db_cluster['Dur. (ms)'], palette='bright') #data['Assault'], hue=data['Cluster'], palette='bright')
-# plt.scatter(centroids[:, 0], centroids[:, 0], c='red', s=20)
-# plt.show()
-
-db.isna().sum()
 
 """# User Experience Analysis
 * AVG TCP Retrans
 * AVG RTT
-* AVG TR
+* AVG TP
 * Handset Type
 
-### TCP DL Retramsmission
+### User Experience Utitlity Functions
 """
+
+# def Aggregate_Sort_db(df, group_by, sort_by,agg_by,agg_func):
+#   return df.groupby(group_by).agg(sort_by = (agg_by,agg_func)).sort(by=str(sort_by), ascending = )
+# # db_user_TCP_DL_RT_count = db.groupby(["MSISDN/Number"]).agg(TCP_DL_RT_Count = ("TCP DL Retrans. Vol (Bytes)", 'value_counts')).sort_values(by='TCP_DL_RT_Count', ascending = False)#.value_counts(ascending = False) # it also works
+# # db_user_TCP_DL_RT_count.head(10)
+
+def group_agg_sort_db(df, group_by, sort_by,agg_by,agg_func):
+  return df.groupby(group_by).agg(sort_by = (agg_by,agg_func)).sort_values(by=(agg_by,agg_func), ascending = False)
+
+"""### Total TCP Retransmission"""
+
+db_user_Total_TCPRtrans = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_TCP_RT = ('Total TCP Retrans. (Bytes)', 'sum')).sort_values(by='Total_TCP_RT', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Total_TCPRtrans
+
+"""### Top 10 TCP Retransmissions"""
+
+db_user_Total_TCPRtrans.head(10)
+
+"""### Bottom 10 TCP Retransmissions"""
+
+db_user_Total_TCPRtrans.tail(10)
+
+"""### TCP DL Retramsmission"""
 
 db_user_TCP_DL_RT = db.groupby(["MSISDN/Number"]).agg(TCP_DL_RT = ("TCP DL Retrans. Vol (Bytes)", 'sum')).sort_values(by='TCP_DL_RT', ascending = False)#.value_counts(ascending = False) # it also works
 db_user_TCP_DL_RT
@@ -1010,6 +1222,19 @@ db_user_TCP_UL_RT.tail(10)
 
 db_user_TCP_UL_RT_count = db.groupby(["MSISDN/Number"]).agg(TCP_UL_RT_Count = ("TCP UL Retrans. Vol (Bytes)", 'value_counts')).sort_values(by='TCP_UL_RT_Count', ascending = False)#.value_counts(ascending = False) # it also works
 db_user_TCP_UL_RT_count.head(10)
+
+"""### Total Avg RTT"""
+
+db_user_Total_RTT = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_RTT = ('Total Avg RTT (ms)', 'sum')).sort_values(by='Total_RTT', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Total_RTT
+
+"""### Top 10 Avg RTT Times"""
+
+db_user_Total_RTT.head(10)
+
+"""### Bottom 10 Avg RTT Times"""
+
+db_user_Total_RTT.tail(10)
 
 """### Average RTT DL"""
 
@@ -1046,6 +1271,21 @@ db_user_RTT_UL.tail(10)
 
 db_user_RTT_UL_count = db.groupby(["MSISDN/Number"]).agg(AVG_RTT_UL_Count = ("Avg RTT UL (ms)", 'value_counts')).sort_values(by='AVG_RTT_UL_Count', ascending = False)#.value_counts(ascending = False) # it also works
 db_user_RTT_UL_count.head(10)
+
+db_totals_col.columns
+
+"""### Total Session Throughput"""
+
+db_user_Total_TP = db_totals_col.groupby(["MSISDN/Number"]).agg(Total_TP = ('Total Avg TP (kbps)', 'sum')).sort_values(by='Total_TP', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Total_TP
+
+"""### Top 10 Session Throughputs"""
+
+db_user_Total_TP.head(10)
+
+"""### Bottom 10 Session Throughputs"""
+
+db_user_Total_TP.tail(10)
 
 """### Average Session DL Throughput"""
 
@@ -1088,74 +1328,218 @@ db_user_TP_UL_count.head(10)
 db_user_HandsetT = db.groupby(["MSISDN/Number"]).agg(Handset_Count = ("Handset Type", 'value_counts')).sort_values(by='Handset_Count', ascending = False)#.value_counts(ascending = False) # it also works
 db_user_HandsetT
 
-"""## User Experience clustering"""
+"""### Total TP per Handset"""
 
-# db_cluster = db_sklearn[['Avg Bearer TP UL (kbps)']]#.concat(db_user_Duration)
-# kmeans = KMeans(n_clusters=3)
-# kmeans.fit(db_cluster)
+db_user_Handset_TP = db_totals_col.groupby(["Handset Type"]).agg(Total_TP_per_Handset = ('Total Avg TP (kbps)', 'sum')).sort_values(by='Total_TP_per_Handset', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Handset_TP
 
-# centroids = kmeans.cluster_centers_
-# centroids = pd.DataFrame(centroids, columns=['Avg Bearer TP UL (kbps)'])
-# centroids.index = np.arange(1, len(centroids)+1) # Start the index from 1
-# centroids
+"""### Avg TP DL per Handset Type"""
 
-# plt.figure(figsize=(12,6))
-# sns.set_palette("pastel")
-# sns.scatterplot(x=db_cluster['MSISDN/Number'], y = db_cluster['Avg Bearer TP UL (kbps)'], palette='bright') #data['Assault'], hue=data['Cluster'], palette='bright')
+db_user_Handset_TP_DL = db.groupby(["Handset Type"]).agg(Total_TP_DL_per_Handset = ('Avg Bearer TP DL (kbps)', 'sum')).sort_values(by='Total_TP_DL_per_Handset', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Handset_TP_DL
 
-"""### Top features for modeling"""
+"""### Avg TP UL per Handset  Type"""
 
-# col = ['Total UL (Bytes)', 'Total DL (Bytes)']
-# y = db_encoded[col]
-# # y
+db_user_Handset_TP_UL = db.groupby(["Handset Type"]).agg(Total_TP_UL_per_Handset = ('Avg Bearer TP UL (kbps)', 'sum')).sort_values(by='Total_TP_UL_per_Handset', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Handset_TP_UL
 
-# len(db_encoded.columns.tolist())
+"""### Total TCP Retransmission per Handset Type"""
 
-# top_features = SelectKBest(score_func=f_regression, k=10)
-# fit = top_features.fit(db_encoded, y)
+db_user_Handset_TCP = db_totals_col.groupby(["Handset Type"]).agg(Total_TCP_per_Handset = ('Total TCP Retrans. (Bytes)', 'sum')).sort_values(by='Total_TCP_per_Handset', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Handset_TCP
 
-# np.set_printoptions(precision=3)
-# print(fit.scores_)
+"""### TCP DL Retransmission per Handset Type
 
-# for i in range(len(fit.scores_)):
-# 	print('Feature %d: %f' % (i, fit.scores_[i]))
-# # plot the scores
-# # plt.bar([i for i in range(len(fit.scores_))], fit.scores_)
-# # plt.show()
+"""
 
-# xtrain,xtest, ytrain, ytest = train_test_split(db_encoded, y, test_size = 0.2, random_state=None)
+db_user_Handset_TCPRet_DL = db.groupby(["Handset Type"]).agg(TCP_Retrans_DL_per_Handset = ('TCP DL Retrans. Vol (Bytes)', 'sum')).sort_values(by='TCP_Retrans_DL_per_Handset', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Handset_TCPRet_DL
 
-# # creating scaler scale var.
-# norm = MinMaxScaler()
-# # fit the scal
-# norm_fit = norm.fit(xtrain)
-# pickle.dump(norm_fit, open("train_set.pkl", 'wb'))
-# dump(norm_fit,'train_set.joblib')
-# # transfromation of trainig data
-# scal_xtrain_set = norm_fit.transform(xtrain)
+"""### TCP UL Retransmission per Handset Type"""
 
-# # transformation of testing data
-# scal_xtest_set = norm_fit.transform(xtest)
-# print(scal_xtrain_set)
+db_user_Handset_TCPRet_UL = db.groupby(["Handset Type"]).agg(TCP_Retrans_UL_per_Handset = ('TCP UL Retrans. Vol (Bytes)', 'sum')).sort_values(by='TCP_Retrans_UL_per_Handset', ascending = False)#.value_counts(ascending = False) # it also works
+db_user_Handset_TCPRet_UL
 
-"""#### Fit the model with RandomForest classifier"""
+"""## User Experience Clustering
 
-# rnd_forest = RandomForestClassifier()
-# # model = KMeans(n_clusters = 3)
+### Features of Clustering
+* TCP retransmission
+* Average RTT
+* Handset type
+* Average throughput (TP)
+
+### Total TCP Retransmission Clusters
+"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total TCP Retrans. (Bytes)'], "Total TCP Retransmision Clusters",'MSISDN/Number','Total TCP Retrans. (Bytes)')
+
+"""### Total Avg RTT Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Avg RTT (ms)'], "Total Avg RTT Clusters",'MSISDN/Number','Total Avg RTT (ms)')
+
+"""### Total Avg Throughput Clusters"""
+
+Cluster(db_totals_col,['MSISDN/Number', 'Total Avg TP (kbps)'], "Total Avg TP Clusters",'MSISDN/Number','Total Avg TP (kbps)')
+
+"""### TCP DL Retransmission Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'TCP DL Retrans. Vol (Bytes)'], "TCP DL Retransmision Clusters",'MSISDN/Number','TCP DL Retrans. Vol (Bytes)')
+
+"""### TCP UL Retransmission Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'TCP UL Retrans. Vol (Bytes)'], "TCP UL Retransmision Clusters",'MSISDN/Number','TCP UL Retrans. Vol (Bytes)')
+
+"""### Avg RTT DL Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'Avg RTT DL (ms)'], "Avg RTT DL Clusters",'MSISDN/Number','Avg RTT DL (ms)')
+
+"""### Avg RTT UL Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'Avg RTT UL (ms)'], "Avg RTT UL Clusters",'MSISDN/Number','Avg RTT UL (ms)')
+
+"""### Handset Type Clusters"""
+
+Cluster(db_encoded,['MSISDN/Number', 'Handset Type'], "Handset Type Clusters",'MSISDN/Number','Handset Type')
+
+"""### Avg Bearer Throughput(TP) DL Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'Avg Bearer TP DL (kbps)'], "AVG TP DL Clusters",'MSISDN/Number','Avg Bearer TP DL (kbps)')
+
+"""### Avg Throughput(TP) UL Clusters"""
+
+Cluster(db_sklearn,['MSISDN/Number', 'Avg Bearer TP UL (kbps)'], "AVG TP UL Clusters",'MSISDN/Number','Avg Bearer TP UL (kbps)')
+
+"""# User Satisfaction Analysis
+
+### Utility Functions
+"""
+
+def CalculateUserEnga_Score(df,datapoint_col):
+
+  points = df[[datapoint_col]]
+  kmeans_fit = kmeans.fit(points)
+  df['cluster'] = kmeans_fit.labels_
+
+  centroids = kmeans_fit.cluster_centers_
+  dists = pd.DataFrame(
+      sdist.cdist(points, centroids), 
+      columns=[f'dist_{i}' for i in range(len(centroids))],index=df.index)
+  df = pd.concat([df, dists], axis=1)
+
+  # Engagement score
+  df["Engagement_Score"] = df[[f'dist_{i}' for i in range(len(centroids))]].max(axis = 1)
+  # df = pd.concat([df,df["Engagement_Score"]],axis = 1)
+  return df[["Engagement_Score"]]
+
+  # distance between its own centroid
   
-# # fit the model
-# # fit_rnd = rnd_forest.fit(xtrain,ytrain)
+  # # points = df.drop('id', axis=1)
+  # points = df[[datapoint_col]]
+  # kmeans = cluster.KMeans(n_clusters=3, random_state=0).fit(points)
+  # df['cluster'] = kmeans.labels_
 
+  # centroids = kmeans.cluster_centers_
+  # dist = sdist.norm(points - centroids[df['cluster']])
+  # df['dist'] = dist
 
+  # print(df)
 
-# # rnd_forest = RandomForestClassifier()
-# xtrain, ytrain, xtest,ytest = train_test_split(db_explore[['MSISDN/Number', "Total DL (Bytes)"]], y, test_size = 0.2, random_state=None)
-# model = KMeans(n_clusters = 3)
-  
-# # fit the model   Avg Bearer TP UL (kbps)
-# fit_rnd = model.fit(xtrain) 
+def CalculateUserExpr_Score(df,datapoint_col):
 
-# plt.figure(figsize=(12,6))
-# sns.set_palette("pastel")
-# #lineplot, swarmplot,stripplot, scatterplot
-# sns.stripplot(data = db_explore, x='MSISDN/Number', y = 'Total DL (Bytes)', palette='bright') #data['Assault'], hue=data['Cluster'], palette='bright')
+  points = df[[datapoint_col]]
+  kmeans_fit = kmeans.fit(points)
+  df['cluster'] = kmeans_fit.labels_
+
+  centroids = kmeans_fit.cluster_centers_
+  dists = pd.DataFrame(
+      sdist.cdist(points, centroids), 
+      columns=[f'dist_{i}' for i in range(len(centroids))],index=df.index)
+  df = pd.concat([df, dists], axis=1)
+>
+  df["Experience_Score"] = df[[f'dist_{i}' for i in range(len(centroids))]].max(axis = 1)
+  # df = pd.concat([df,df["Experience_Score"]],axis = 1)
+  return df[["Experience_Score"]]
+
+"""### Duration Engagement Score"""
+
+db_engag = db_totals_col.copy()
+
+engage_score_dur = CalculateUserEnga_Score(db_totals_col, "Dur. (ms)")
+db_engag["Engagement_Score_Dur"] = engage_score_dur["Engagement_Score"]
+db_engag[['MSISDN/Number', 'Engagement_Score_Dur']]
+
+"""### Total Bytes Engagement Score"""
+
+engage_score_total = CalculateUserEnga_Score(db_totals_col, 'Total Bytes')
+db_engag["Engagement_Score_Total"] = engage_score_total["Engagement_Score"]
+db_engag[['MSISDN/Number', 'Engagement_Score_Total']]#.head(10)
+
+"""# Expereince Score"""
+
+db_exper = db_totals_col.copy()
+
+"""### Total TCP Retransmission Experience Score"""
+
+exper_score_total_TCP = CalculateUserExpr_Score(db_totals_col, 'Total TCP Retrans. (Bytes)')
+db_exper["Experience_Score_Total_TCP"] = exper_score_total_TCP["Experience_Score"]
+db_exper[['MSISDN/Number', 'Experience_Score_Total_TCP']]#.head(10)
+
+"""### Total RTT Experience Score"""
+
+exper_score_total_RTT = CalculateUserExpr_Score(db_totals_col, 'Total Avg RTT (ms)')
+db_exper["Experience_Score_Total_RTT"] = exper_score_total_RTT["Experience_Score"]
+db_exper[['MSISDN/Number', 'Experience_Score_Total_RTT']]#.head(10)
+
+"""### Total TP Experience Score"""
+
+exper_score_total_TP = CalculateUserExpr_Score(db_totals_col, 'Total Avg TP (kbps)')
+db_exper["Experience_Score_Total_TP"] = exper_score_total_TP["Experience_Score"]
+db_exper[['MSISDN/Number', 'Experience_Score_Total_TP']]#.head(10)
+
+"""# Satisfaction Score
+
+### Engagement Satisfaction Score
+"""
+
+satisf_score_engag = (db_engag['Engagement_Score_Dur'] + db_engag['Engagement_Score_Total'])/2.0
+db_engag["Engagement_Satisf_Score"] = satisf_score_engag
+db_engag[['MSISDN/Number', 'Engagement_Satisf_Score']].head(10)
+
+"""### Experience Satisfaction Score"""
+
+satisf_score_exper= (db_exper['Experience_Score_Total_TCP'] + db_exper['Experience_Score_Total_RTT'] + db_exper['Experience_Score_Total_TP'])/3.0
+db_exper["Experience_Satisf_Score"] = satisf_score_exper
+# db_exper.rename(columns = {'Satisf_Score':'Experience_Satisf_Score'})
+db_exper[['MSISDN/Number', 'Experience_Satisf_Score']].head(10)
+
+"""## Engagement Satisfaction Cluster"""
+
+Cluster(db_engag,['MSISDN/Number', 'Engagement_Satisf_Score'], "Engagement Satisfaction Clusters",'MSISDN/Number','Engagement_Satisf_Score')
+
+"""## Experience Satisfaction Cluster"""
+
+Cluster(db_exper,['MSISDN/Number', 'Experience_Satisf_Score'], "Experience Satisfaction Clusters",'MSISDN/Number','Experience_Satisf_Score')
+
+"""## Engagement Clusters"""
+
+Cluster(db_engag,['MSISDN/Number', 'Engagement_Score_Total'], "Total Bytes Engagement Clusters",'MSISDN/Number','Engagement_Score_Total')
+
+"""## Experience Cluster"""
+
+Cluster(db_exper,['MSISDN/Number', 'Experience_Score_Total_TP'], "Total TP Experience Clusters",'MSISDN/Number','Experience_Score_Total_TP')
+'Experience_Score_Total_TP'
+
+"""### MySQL Table Columns"""
+
+# eng_score_total= db_engag['Engagement_Score_Dur'] + db_engag['Engagement_Score_Total']
+# exper_score_total= db_exper['Experience_Score_Total_TCP'] + db_exper['Experience_Score_Total_RTT'] + db_exper['Experience_Score_Total_TP']
+db_1 = db_engag[['MSISDN/Number','Engagement_Score_Dur', 'Engagement_Score_Total','Engagement_Satisf_Score']]
+db_2 = db_exper[['Experience_Score_Total_TCP', 'Experience_Score_Total_RTT','Experience_Score_Total_TP', 'Experience_Satisf_Score']]
+db_mysql = pd.concat([db_1,db_2], axis = 1)
+db_mysql
+# db_mysql[["MSISDN_Number", "Engagement_Score", "Experience_Score", "Satisfaction_Score"]] =
+
+db_mysql.to_csv("/content/drive/MyDrive/Colab Notebooks/data/User_Scores.csv",
+                header = True, index = False)
+
+db_mysql.columns
