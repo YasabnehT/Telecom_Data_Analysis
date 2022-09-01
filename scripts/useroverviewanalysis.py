@@ -1,3 +1,4 @@
+#%%  
 # -*- coding: utf-8 -*-
 """UserOverviewAnalysis.ipynb
 
@@ -34,18 +35,18 @@ import pickle
 
 """### Mount Google Drive to Google Colab"""
 
-from google.colab import drive
-drive.mount('/content/drive')
+# # from google.colab import drive
+# drive.mount('/content/drive')
 
-"""# Data Understanding
+# """# Data Understanding
 
-### **Identify datasets with NaN or None values**
-"""
+# ### **Identify datasets with NaN or None values**
+# """
 
 import warnings
 warnings.filterwarnings('ignore')
-pd.set_option('max_column', None)
-db = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/data/Week1_challenge_data_source(CSV).csv', na_values=['undefined','?', None])
+# pd.set_option('max_column', None)
+db = pd.read_csv('data/Week1_challenge_data_source(CSV).csv', na_values=['undefined','?', None])
 db.head() # the fisrt five rows
 
 """# Size of the dataset
@@ -311,6 +312,7 @@ Scaling just changes the range of your data. Normalization is a more radical tra
 
 ### Numeric Value Scaling
 """
+db = pd.read_csv('data/Week1_challenge_data_source(CSV).csv', na_values=['undefined','?', None])
 
 minmax_scaler = preprocessing.MinMaxScaler()
 def scalling_numeric_values(df):
@@ -371,6 +373,8 @@ db[important_columns_object].mode()
 """
 
 db_explore = db.copy()
+db_explore.to_csv("data/db_explore.csv",header = True, index = False)
+
 fix_outlier(db_explore, "MSISDN/Number")
 
 plot_hist(db_explore.head(10000),"MSISDN/Number" ,'green')
@@ -1455,7 +1459,7 @@ def CalculateUserExpr_Score(df,datapoint_col):
       sdist.cdist(points, centroids), 
       columns=[f'dist_{i}' for i in range(len(centroids))],index=df.index)
   df = pd.concat([df, dists], axis=1)
->
+
   df["Experience_Score"] = df[[f'dist_{i}' for i in range(len(centroids))]].max(axis = 1)
   # df = pd.concat([df,df["Experience_Score"]],axis = 1)
   return df[["Experience_Score"]]
@@ -1543,3 +1547,4 @@ db_mysql.to_csv("/content/drive/MyDrive/Colab Notebooks/data/User_Scores.csv",
                 header = True, index = False)
 
 db_mysql.columns
+# %%
